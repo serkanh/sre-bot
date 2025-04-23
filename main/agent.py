@@ -1,8 +1,7 @@
-from google.adk.agents import LlmAgent
-from google.adk.agents.utils import load_instruction_template
+from google.adk.agents import Agent, LlmAgent
 from .tools.kube_tools import *
-
-kubernetes_agent = LlmAgent(
+from .utils import load_instruction_from_file
+kubernetes_agent = Agent(
     name="kubernetes_agent",
     model="gemini-2.0-flash-exp",
     instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
@@ -32,9 +31,8 @@ kubernetes_agent = LlmAgent(
 sre_agent = LlmAgent(
     name="sre_agent",
     model="gemini-2.0-flash-exp",
-    instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
     description="An assistant that can help you with your Kubernetes cluster",
-    instruction_template=load_instruction_template("sre_agent_context.txt"),
+    instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
     sub_agents=[
         kubernetes_agent
     ]
