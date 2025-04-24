@@ -1,0 +1,46 @@
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Temporary Fix for GPG Errors ---
+# This section attempts to fix potential GPG key issues with apt.
+# It allows insecure updates temporarily to reinstall the keyring, then updates again.
+# Ideally, the base image or network environment should resolve this.
+RUN apt-get update --allow-insecure-repositories && \
+    apt-get install --reinstall debian-archive-keyring --allow-unauthenticated -y && \
+    apt-get update && \
+# --- Install AWS CLI ---
+    apt-get install -y --no-install-recommends awscli && \
+# --- Clean up ---
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY . .
+
+# # Create a non-root user to run the application
+# RUN groupadd -r sre && useradd -r -g sre sre
+# RUN chown -R sre:sre /app
+# USER sre
+
+# Set the entrypoint
+
+
+# Set default command (can be overridden)
+CMD ["adk", "web"]

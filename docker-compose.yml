@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  sre-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sre-bot:latest
+    container_name: sre-bot
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # Expose the web interface
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}  # Set from environment variable
+      - PYTHONPATH=/app
+      # set the kube context that is set on the parent shell session
+      - KUBE_CONTEXT=${KUBE_CONTEXT}
+      - KUBECONFIG=/root/.kube/config
+      - AWS_PROFILE=${AWS_PROFILE}
+    volumes:
+      - ${HOME}/.kube:/root/.kube:ro
+      - ${HOME}/.aws:/root/.aws:ro
+    command: ["adk", "web"]
+
+  sre-bot-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sre-bot:latest
+    container_name: sre-bot-api
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # Expose the API
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - PYTHONPATH=/app
+      - KUBECONFIG=/root/.kube/config
+      - KUBE_CONTEXT=${KUBE_CONTEXT}
+      - AWS_PROFILE=${AWS_PROFILE}
+    volumes:
+      - ${HOME}/.kube:/root/.kube:ro
+      - ${HOME}/.aws:/root/.aws:ro
+    command: ["adk", "api_server"]
