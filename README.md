@@ -60,6 +60,8 @@ The SRE Assistant could potentially:
 
 ## Usage
 
+### Running Locally
+
 Run the agent using the following command for a web interface:
 
 ```bash
@@ -89,6 +91,33 @@ Then, send a message to the agent:
 # Replace 'sre' if your app name is different
 curl -X POST http://0.0.0.0:8000/apps/sre/users/u_123/sessions/s_123/messages -H "Content-Type: application/json" -d '{"message": "What is the status of the login service?"}'
 ```
+
+### Running with Docker
+
+The application can also be run using Docker and Docker Compose.
+
+1. Set your Google API key as an environment variable:
+   ```bash
+   export GOOGLE_API_KEY="your-api-key"
+   ```
+
+2. Build and start the container:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Access the web interface at `http://localhost:8000`
+
+4. To stop the container:
+   ```bash
+   docker-compose down
+   ```
+
+5. To run in API mode instead of web mode, uncomment the `sre-bot-api` service in the `docker-compose.yml` file and run:
+   ```bash
+   docker-compose up -d sre-bot-api
+   ```
+   The API will be accessible at `http://localhost:8001`
 
 ## Structure (Assumed - Please update)
 
@@ -129,4 +158,4 @@ This agent may require access to sensitive systems and data. Ensure that:
 1.  Appropriate credentials and API keys are securely managed (e.g., using environment variables, secrets management tools).
 2.  The principle of least privilege is followed – the agent should only have the permissions necessary to perform its defined tasks.
 3.  Network access and configurations are secure.
-4.  Audit logs are reviewed periodically. 
+4.  Audit logs are reviewed periodically.
