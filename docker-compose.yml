@@ -37,6 +37,8 @@ services:
       - KUBECONFIG=/root/.kube/config
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - AWS_PROFILE=${AWS_PROFILE}
+    env_file:
+      - .env
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
