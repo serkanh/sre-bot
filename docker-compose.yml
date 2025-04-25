@@ -41,3 +41,16 @@ services:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
     command: ["adk", "api_server"]
+
+  slack-bot:
+    build:
+      context: ./slack_bot
+      dockerfile: Dockerfile
+    image: slack-bot:latest
+    container_name: slack-bot
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
