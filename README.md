@@ -1,6 +1,6 @@
 # SRE Assistant Agent
 
-A Google Agent Development Kit (ADK) powered assistant designed to help Site Reliability Engineers (SREs) with operational tasks and monitoring.
+A Google Agent Development Kit (ADK) powered assistant designed to help Site Reliability Engineers (SREs) with operational tasks and monitoring, particularly focused on Kubernetes interactions.
 
 ## Overview
 
@@ -8,32 +8,35 @@ This repository contains an SRE Assistant Agent built with Google's Agent Develo
 
 ## Features (Potential - To be updated)
 
-The SRE Assistant could potentially:
+The SRE Assistant currently includes tools for interacting with Kubernetes clusters:
 
-- []  Check the status of services and infrastructure components.
-- Retrieve metrics from monitoring systems (e.g., Prometheus, Datadog).
-- Fetch logs for specific services or applications.
-- Provide summaries of ongoing alerts or incidents.
-- Assist with deployment rollbacks or status checks.
-- Manage on-call schedules or escalations (if integrated).
-- Retrieve system configuration details.
-- Perform health checks on demand.
-- Answer questions based on runbooks or internal documentation.
+- List resources (Namespaces, Deployments, Pods, Services, Secrets, DaemonSets, ConfigMaps) across all namespaces or within a specific namespace.
+- Get detailed information about specific Deployments and Pods.
+- Scale Deployments.
+- Retrieve logs from Pods.
+- Get resource health information.
+- Fetch cluster events.
 
-*(Please update this section with the actual implemented features)*
+*(This list is based on tools defined in `agent_root/agent.py`. Future features might include AWS interactions, etc.)*
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.10+ (as defined in `Dockerfile`)
+- Docker and Docker Compose
 - Google API key for Gemini access (https://aistudio.google.com/apikey)
-- Access credentials/configurations for any systems the bot needs to interact with (e.g., monitoring APIs, cloud providers, incident management tools).
-- Required Python packages (see `requirements.txt`):
-  - `google-adk`
-  - `kubernetes>=28.1.0` *(If Kubernetes interaction is needed)*
-  - `python-dateutil>=2.8.2` *(If date/time manipulation is needed)*
-  *(Add other necessary packages)*
+- Access credentials/configurations for any systems the bot needs to interact with:
+    - Configured `kubectl` access to your Kubernetes cluster (`~/.kube/config`).
+    - *(Optional)* Configured AWS credentials (`~/.aws/credentials` and `~/.aws/config`) if using AWS tools.
+- Required Python packages (see `agent_root/requirements.txt`):
+    - `google-adk`
+    - `kubernetes>=28.1.0`
+    - `python-dateutil>=2.8.2`
+    - `ruff` (for formatting and linting)
+    *(Add other necessary packages)*
 
-## Installation
+## Installation (Local Development - Optional)
+
+While running via Docker is recommended, you can set up a local environment:
 
 1.  Clone this repository:
     ```bash
@@ -48,7 +51,7 @@ The SRE Assistant could potentially:
     ```
 3.  Install the required dependencies:
     ```bash
-    pip install -r requirements.txt
+    pip install -r agent_root/requirements.txt
     ```
 
 4.  Set up your Google API key:
@@ -56,106 +59,130 @@ The SRE Assistant could potentially:
     export GOOGLE_API_KEY="your-api-key"
     ```
 
-5.  Ensure any necessary configurations for target systems (monitoring, cloud, etc.) are properly set up and accessible by the environment where the agent runs.
+5.  Ensure `kubectl` is configured correctly and any necessary AWS profiles are set up.
 
-## Usage
-
-### Running Locally
-
-Run the agent using the following command for a web interface:
-
-```bash
-# Assuming 'sre' is your app name defined in the ADK setup
-adk web --app-name sre
-```
-
-This will start the agent in web mode, typically accessible at `http://localhost:8000`.
-
-To run the agent in API mode:
-
-```bash
-# Assuming 'sre' is your app name defined in the ADK setup
-adk api --app-name sre
-```
-
-To test the agent in API mode, first create a new session:
-
-```bash
-# Replace 'sre' if your app name is different
-curl -X POST http://0.0.0.0:8000/apps/sre/users/u_123/sessions/s_123 -H "Content-Type: application/json" -d '{"state": {"example_key": "example_value"}}'
-```
-
-Then, send a message to the agent:
-
-```bash
-# Replace 'sre' if your app name is different
-curl -X POST http://0.0.0.0:8000/apps/sre/users/u_123/sessions/s_123/messages -H "Content-Type: application/json" -d '{"message": "What is the status of the login service?"}'
-```
+## Usage (Docker Recommended)
 
 ### Running with Docker
 
-The application can also be run using Docker and Docker Compose.
+The application is designed to run using Docker and Docker Compose, simplifying dependency management and environment setup.
 
-1. Set your Google API key as an environment variable:
+1. Set required environment variables:
+    ```bash
+    # Mandatory
+    export GOOGLE_API_KEY="your-api-key"
+
+    # Optional: Specify the Kubernetes context to use (if different from default)
+    # Note: The application code must explicitly use this variable.
+    export KUBE_CONTEXT="your-kube-context-name"
+
+    # Optional: Specify the AWS profile to use (if using AWS tools)
+    # Note: The application code must explicitly use this variable or AWS SDK defaults apply.
+    export AWS_PROFILE="your-aws-profile-name"
+    ```
+
+2. Build and start the container(s):
+    ```bash
+    docker-compose build
+    docker-compose up -d
+    ```
+    This will start the `sre-bot` service (web interface) by default.
+
+3. Access the web interface at `http://localhost:8000`. The application name identified by ADK might correspond to the `agent_root` directory.
+
+4. The `docker-compose.yml` file mounts:
+    - `~/.kube` to `/home/root/.kube` (read-only) inside the container, allowing `kubectl` access. The `KUBECONFIG` environment variable inside the container is set to `/home/root/.kube/config`.
+    - `~/.aws` to `/home/root/.aws` (read-only) inside the container, allowing AWS tool access.
+
+5. To stop the containers:
+    ```bash
+    docker-compose down
+    ```
+
+6. To run the API server instead of the web UI:
+    ```bash
+    # Ensure the 'sre-bot-api' service is defined in docker-compose.yml
+    docker-compose up -d sre-bot-api
+    ```
+    The API will be accessible at `http://localhost:8001`. Refer to ADK documentation or the previous `Usage` section for example `curl` commands (adjusting the app name path if necessary, e.g., `/apps/agent_root/...`).
+
+### Running Locally (If Installation steps were followed)
+
+You might be able to run the agent locally using the ADK CLI. The application name might be derived from the directory structure (`agent_root`).
+
+```bash
+# From the project root directory
+adk web agent_root
+# or potentially
+adk web
+```
+
+*Local execution might be less reliable due to potential path and discovery issues experienced previously.*
+
+## Code Formatting and Linting (Ruff)
+
+This project uses Ruff for code formatting and linting (following PEP 8).
+
+1. Ensure Ruff is installed (via `pip install -r agent_root/requirements.txt`).
+2. Check for issues:
    ```bash
-   export GOOGLE_API_KEY="your-api-key"
+   ruff check .
+   ```
+3. Format code:
+   ```bash
+   ruff format .
+   ```
+4. Check and automatically fix issues:
+   ```bash
+   ruff check . --fix
    ```
 
-2. Build and start the container:
-   ```bash
-   docker-compose up -d
-   ```
+Run these commands from the project's root directory. Configuration is in `pyproject.toml`.
 
-3. Access the web interface at `http://localhost:8000`
+## Structure
 
-4. To stop the container:
-   ```bash
-   docker-compose down
-   ```
-
-5. To run in API mode instead of web mode, uncomment the `sre-bot-api` service in the `docker-compose.yml` file and run:
-   ```bash
-   docker-compose up -d sre-bot-api
-   ```
-   The API will be accessible at `http://localhost:8001`
-
-## Structure (Assumed - Please update)
-
-- `sre/`
-  - `agent.py`: Contains the main agent logic (ADK application).
-  - `tools/`
+- `agent_root/`
+  - `agent.py`: Contains the main agent logic (ADK application definition, `root_agent`).
+  - `agent_tools/`: Contains Python modules defining tools the agent can use.
     - `__init__.py`
-    - `tools.py`: Contains functions for interacting with external systems (monitoring, logging, etc.).
+    - `kube_tools.py`: Functions for interacting with Kubernetes.
+    - `utils.py`: Utility functions.
   - `__init__.py`: Package initialization file.
-- `requirements.txt`: Lists all required Python packages.
+  - `requirements.txt`: Python dependencies for the agent application.
+- `docker-compose.yml`: Docker Compose configuration for running services.
+- `Dockerfile`: Instructions for building the Docker image.
+- `pyproject.toml`: Configuration for Ruff (linting/formatting) and other potential Python tools.
 - `.gitignore`: Specifies intentionally untracked files that Git should ignore.
 - `README.md`: This documentation file.
 
-## Available Functions (Potential - To be updated)
+## Available Functions (Kubernetes Tools)
 
-*(List the actual functions implemented in `sre/tools/tools.py` once defined)*
+The following functions are defined in `agent_root/agent_tools/kube_tools.py` and available to the agent:
 
-### Monitoring & Health Checks
-- `get_service_status(service_name)`
-- `get_system_metrics(metric_query, time_range)`
-- `check_endpoint_health(url)`
+- `list_namespaces()`
+- `list_deployments_from_namespace(namespace: str)`
+- `list_deployments_all_namespaces()`
+- `list_pods_from_namespace(namespace: str)`
+- `list_pods_all_namespaces()`
+- `list_services_from_namespace(namespace: str)`
+- `list_secrets_from_namespace(namespace: str)`
+- `list_daemonsets_from_namespace(namespace: str)`
+- `list_configmaps_from_namespace(namespace: str)`
+- `list_all_resources(namespace: str)`
+- `get_deployment_details(namespace: str, deployment_name: str)`
+- `get_pod_details(namespace: str, pod_name: str)`
+- `scale_deployment(namespace: str, deployment_name: str, replicas: int)`
+- `get_pod_logs(namespace: str, pod_name: str, tail_lines: int = 50)`
+- `get_resource_health(namespace: str, resource_type: str, resource_name: str)`
+- `get_events(namespace: str)`
+- `get_events_all_namespaces()`
 
-### Logging
-- `get_service_logs(service_name, time_range, filter_pattern=None)`
-
-### Incident Management
-- `get_active_alerts()`
-- `acknowledge_alert(alert_id)`
-
-### Deployment
-- `get_deployment_status(deployment_name, environment)`
-
-*(Add detailed descriptions for each function)*
+*(Add detailed descriptions or link to code/docstrings if necessary)*
 
 ## Security Note
 
-This agent may require access to sensitive systems and data. Ensure that:
-1.  Appropriate credentials and API keys are securely managed (e.g., using environment variables, secrets management tools).
-2.  The principle of least privilege is followed – the agent should only have the permissions necessary to perform its defined tasks.
+This agent may require access to sensitive systems and data (Kubernetes cluster, potentially AWS). Ensure that:
+1.  Appropriate credentials and API keys are securely managed (e.g., using environment variables like `GOOGLE_API_KEY`, relying on mounted `~/.kube/config` and `~/.aws/credentials`).
+2.  The principle of least privilege is followed – the agent should only have the permissions necessary to perform its defined tasks within Kubernetes and/or AWS.
 3.  Network access and configurations are secure.
 4.  Audit logs are reviewed periodically.
