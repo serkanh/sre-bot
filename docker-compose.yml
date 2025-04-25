@@ -4,7 +4,7 @@ services:
   sre-bot:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: agent_root/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot
     restart: unless-stopped
@@ -22,10 +22,10 @@ services:
       - ${HOME}/.aws:/root/.aws:ro
     command: ["adk", "web"]
 
-  sre-bot-api:
+  sre-bot-api:  
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: agent_root/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot-api
     restart: unless-stopped
