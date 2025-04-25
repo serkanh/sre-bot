@@ -106,6 +106,24 @@ The application is designed to run using Docker and Docker Compose, simplifying 
     ```
     The API will be accessible at `http://localhost:8001`. Refer to ADK documentation or the previous `Usage` section for example `curl` commands (adjusting the app name path if necessary, e.g., `/apps/agent_root/...`).
 
+
+To run the agent in API mode, use the following command:
+
+```bash
+adk api
+```
+
+To test the agent in API mode, use the following command first create a new session by issuing the following command:
+
+```
+curl -X POST http://0.0.0.0:8001/apps/kube/users/u_123/sessions/s_123 -H "Content-Type: application/json" -d '{"state": {"key1": "value1", "key2": 42}}'
+```
+Followed by issuing the following command to send a message to the agent:
+
+```
+curl -X POST http://0.0.0.0:8001/apps/kube/users/u_123/sessions/s_123/messages -H "Content-Type: application/json" -d '{"message": "How many pods are running in the default namespace?"}'
+```
+
 ### Running Locally (If Installation steps were followed)
 
 You might be able to run the agent locally using the ADK CLI. The application name might be derived from the directory structure (`agent_root`).
