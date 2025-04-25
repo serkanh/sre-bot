@@ -1,7 +1,6 @@
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from typing import Dict, List, Optional, Union
-from datetime import datetime
+from typing import Dict, List, Optional
 
 config.load_config()
 
@@ -21,6 +20,7 @@ def list_namespaces() -> list:
     namespaces = api_v1.list_namespace()
     return [ns.metadata.name for ns in namespaces.items]
 
+
 def list_deployments_from_namespace(namespace: str = "default") -> list:
     """
     List all deployments in a specific namespace.
@@ -33,6 +33,7 @@ def list_deployments_from_namespace(namespace: str = "default") -> list:
     """
     deployments = apps_v1.list_namespaced_deployment(namespace)
     return [deploy.metadata.name for deploy in deployments.items]
+
 
 def list_deployments_all_namespaces() -> List[Dict]:
     """
@@ -52,7 +53,10 @@ def list_deployments_all_namespaces() -> List[Dict]:
             for deploy in deployments.items
         ]
     except ApiException as e:
-        return [{"error": f"Failed to list deployments across all namespaces: {str(e)}"}]
+        return [
+            {"error": f"Failed to list deployments across all namespaces: {str(e)}"}
+        ]
+
 
 def list_pods_from_namespace(namespace: str = "default") -> list:
     """
@@ -67,6 +71,7 @@ def list_pods_from_namespace(namespace: str = "default") -> list:
     pods = api_v1.list_namespaced_pod(namespace)
     return [pod.metadata.name for pod in pods.items]
 
+
 def list_pods_all_namespaces() -> List[Dict]:
     """
     List pods across all namespaces.
@@ -80,12 +85,13 @@ def list_pods_all_namespaces() -> List[Dict]:
             {
                 "name": pod.metadata.name,
                 "namespace": pod.metadata.namespace,
-                "status": pod.status.phase
+                "status": pod.status.phase,
             }
             for pod in pods.items
         ]
     except ApiException as e:
         return [{"error": f"Failed to list pods across all namespaces: {str(e)}"}]
+
 
 def list_services_from_namespace(namespace: str = "default") -> list:
     """
@@ -100,6 +106,7 @@ def list_services_from_namespace(namespace: str = "default") -> list:
     services = api_v1.list_namespaced_service(namespace)
     return [svc.metadata.name for svc in services.items]
 
+
 def list_secrets_from_namespace(namespace: str = "default") -> list:
     """
     List all secrets in a specific namespace.
@@ -112,6 +119,7 @@ def list_secrets_from_namespace(namespace: str = "default") -> list:
     """
     secrets = api_v1.list_namespaced_secret(namespace)
     return [secret.metadata.name for secret in secrets.items]
+
 
 def list_daemonsets_from_namespace(namespace: str = "default") -> list:
     """
@@ -126,6 +134,7 @@ def list_daemonsets_from_namespace(namespace: str = "default") -> list:
     daemonsets = apps_v1.list_namespaced_daemon_set(namespace)
     return [ds.metadata.name for ds in daemonsets.items]
 
+
 def list_configmaps_from_namespace(namespace: str = "default") -> list:
     """
     List all configmaps in a specific namespace.
@@ -138,6 +147,7 @@ def list_configmaps_from_namespace(namespace: str = "default") -> list:
     """
     configmaps = api_v1.list_namespaced_config_map(namespace)
     return [cm.metadata.name for cm in configmaps.items]
+
 
 def list_all_resources(namespace: str = "default") -> dict:
     """
@@ -155,9 +165,10 @@ def list_all_resources(namespace: str = "default") -> dict:
         "services": list_services_from_namespace(namespace),
         "secrets": list_secrets_from_namespace(namespace),
         "daemonsets": list_daemonsets_from_namespace(namespace),
-        "configmaps": list_configmaps_from_namespace(namespace)
+        "configmaps": list_configmaps_from_namespace(namespace),
     }
     return resources
+
 
 def get_deployment_details(deployment_name: str, namespace: str = "default") -> Dict:
     """
@@ -178,10 +189,13 @@ def get_deployment_details(deployment_name: str, namespace: str = "default") -> 
             "replicas": deployment.spec.replicas,
             "available_replicas": deployment.status.available_replicas,
             "strategy": deployment.spec.strategy.type,
-            "containers": [container.name for container in deployment.spec.template.spec.containers]
+            "containers": [
+                container.name for container in deployment.spec.template.spec.containers
+            ],
         }
     except ApiException as e:
         return {"error": f"Failed to get deployment details: {str(e)}"}
+
 
 def get_pod_details(pod_name: str, namespace: str = "default") -> Dict:
     """
@@ -203,12 +217,15 @@ def get_pod_details(pod_name: str, namespace: str = "default") -> Dict:
             "node": pod.spec.node_name,
             "containers": [container.name for container in pod.spec.containers],
             "start_time": pod.status.start_time,
-            "ip": pod.status.pod_ip
+            "ip": pod.status.pod_ip,
         }
     except ApiException as e:
         return {"error": f"Failed to get pod details: {str(e)}"}
 
-def scale_deployment(deployment_name: str, replicas: int, namespace: str = "default") -> Dict:
+
+def scale_deployment(
+    deployment_name: str, replicas: int, namespace: str = "default"
+) -> Dict:
     """
     Scale a deployment to a specific number of replicas.
 
@@ -223,11 +240,20 @@ def scale_deployment(deployment_name: str, replicas: int, namespace: str = "defa
     try:
         body = {"spec": {"replicas": replicas}}
         apps_v1.patch_namespaced_deployment_scale(deployment_name, namespace, body)
-        return {"status": "success", "message": f"Scaled deployment {deployment_name} in namespace {namespace} to {replicas} replicas"}
+        return {
+            "status": "success",
+            "message": f"Scaled deployment {deployment_name} in namespace {namespace} to {replicas} replicas",
+        }
     except ApiException as e:
         return {"status": "error", "message": f"Failed to scale deployment: {str(e)}"}
 
-def get_pod_logs(pod_name: str, namespace: str = "default", container: Optional[str] = None, tail_lines: int = 100) -> str:
+
+def get_pod_logs(
+    pod_name: str,
+    namespace: str = "default",
+    container: Optional[str] = None,
+    tail_lines: int = 100,
+) -> str:
     """
     Get logs from a specific pod.
 
@@ -242,15 +268,15 @@ def get_pod_logs(pod_name: str, namespace: str = "default", container: Optional[
     """
     try:
         return api_v1.read_namespaced_pod_log(
-            pod_name,
-            namespace,
-            container=container,
-            tail_lines=tail_lines
+            pod_name, namespace, container=container, tail_lines=tail_lines
         )
     except ApiException as e:
         return f"Failed to get pod logs: {str(e)}"
 
-def get_resource_health(resource_name: str, resource_type: str, namespace: str = "default") -> Dict:
+
+def get_resource_health(
+    resource_name: str, resource_type: str, namespace: str = "default"
+) -> Dict:
     """
     Get health status of a specific resource.
 
@@ -266,48 +292,68 @@ def get_resource_health(resource_name: str, resource_type: str, namespace: str =
         if resource_type == "pod":
             pod = api_v1.read_namespaced_pod(resource_name, namespace)
             # Check if container_statuses is None before summing restart counts
-            restart_count = sum(cs.restart_count for cs in pod.status.container_statuses) if pod.status.container_statuses else 0
+            restart_count = (
+                sum(cs.restart_count for cs in pod.status.container_statuses)
+                if pod.status.container_statuses
+                else 0
+            )
             return {
                 "status": pod.status.phase,
-                "ready": all(condition.status == "True" for condition in pod.status.conditions if pod.status.conditions),
-                "restart_count": restart_count
+                "ready": all(
+                    condition.status == "True"
+                    for condition in pod.status.conditions
+                    if pod.status.conditions
+                ),
+                "restart_count": restart_count,
             }
         elif resource_type == "deployment":
             deployment = apps_v1.read_namespaced_deployment(resource_name, namespace)
             return {
-                "status": "Healthy" if deployment.status.available_replicas == deployment.spec.replicas else "Unhealthy",
+                "status": "Healthy"
+                if deployment.status.available_replicas == deployment.spec.replicas
+                else "Unhealthy",
                 "available_replicas": deployment.status.available_replicas,
-                "desired_replicas": deployment.spec.replicas
+                "desired_replicas": deployment.spec.replicas,
             }
         else:
             return {"error": f"Unsupported resource type: {resource_type}"}
     except ApiException as e:
         return {"error": f"Failed to get resource health: {str(e)}"}
 
+
 def _format_k8s_events(events_items: List) -> List[Dict]:
     """Internal helper to format Kubernetes event objects."""
     formatted_events = []
     for event in events_items:
-        formatted_events.append({
-            "name": event.metadata.name,
-            "namespace": event.metadata.namespace,
-            "type": event.type,
-            "reason": event.reason,
-            "message": event.message,
-            "source": {
-                "component": event.source.component if event.source else None,
-                "host": event.source.host if event.source else None
-            },
-            "first_seen": event.first_timestamp.isoformat() if event.first_timestamp else None,
-            "last_seen": event.last_timestamp.isoformat() if event.last_timestamp else None,
-            "count": event.count,
-            "involved_object": {
-                "kind": event.involved_object.kind,
-                "name": event.involved_object.name,
-                "namespace": event.involved_object.namespace
-            } if event.involved_object else None
-        })
+        formatted_events.append(
+            {
+                "name": event.metadata.name,
+                "namespace": event.metadata.namespace,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "source": {
+                    "component": event.source.component if event.source else None,
+                    "host": event.source.host if event.source else None,
+                },
+                "first_seen": event.first_timestamp.isoformat()
+                if event.first_timestamp
+                else None,
+                "last_seen": event.last_timestamp.isoformat()
+                if event.last_timestamp
+                else None,
+                "count": event.count,
+                "involved_object": {
+                    "kind": event.involved_object.kind,
+                    "name": event.involved_object.name,
+                    "namespace": event.involved_object.namespace,
+                }
+                if event.involved_object
+                else None,
+            }
+        )
     return formatted_events
+
 
 def get_events(namespace: str = "default", limit: int = 200) -> List[Dict]:
     """
@@ -326,6 +372,7 @@ def get_events(namespace: str = "default", limit: int = 200) -> List[Dict]:
     except ApiException as e:
         return [{"error": f"Failed to get events for namespace {namespace}: {str(e)}"}]
 
+
 def get_events_all_namespaces(limit: int = 200) -> List[Dict]:
     """
     Get Kubernetes events across all namespaces with a configurable limit.
@@ -341,6 +388,7 @@ def get_events_all_namespaces(limit: int = 200) -> List[Dict]:
         return _format_k8s_events(events.items)
     except ApiException as e:
         return [{"error": f"Failed to get events across all namespaces: {str(e)}"}]
+
 
 __all__ = [
     "list_namespaces",
@@ -359,5 +407,5 @@ __all__ = [
     "get_pod_logs",
     "get_resource_health",
     "get_events",
-    "get_events_all_namespaces"
-] 
+    "get_events_all_namespaces",
+]

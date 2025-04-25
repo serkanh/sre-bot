@@ -1,5 +1,5 @@
-
 import os
+
 
 def load_instruction_from_file(
     filename: str, default_instruction: str = "Default instruction."
