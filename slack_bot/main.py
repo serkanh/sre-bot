@@ -43,3 +43,31 @@ async def slack_events(req: Request) -> Any:
         Any: The response to the Slack event.
     """
     return await app_handler.handle(req)
+
+@app.event("message")
+async def handle_message_events(body, say, logger):
+    """
+    Handle all message events as suggested by Slack Bolt
+    """
+    logger.info(body)
+    # Extract the event from the body
+    event = body.get("event", {})
+    
+    # If this is a message mentioning the bot
+    if event.get("type") == "message" and "text" in event:
+        user = event.get("user")
+        text = event.get("text")
+        channel = event.get("channel")
+        
+        # Avoid responding to bot's own messages
+        if not event.get("bot_id") and user:
+            logger.info(f"Received message from user {user}: {text}")
+            
+            # Check if the message contains a bot mention (starts with <@BOT_ID>)
+            if text and text.startswith("<@"):
+                try:
+                    # Reply with a greeting using the user's mention format
+                    await say(f"Hello <@{user}>! How can I help you today? 👋")
+                    logger.info(f"Sent greeting to user {user}")
+                except Exception as e:
+                    logger.error(f"Error sending message: {e}")

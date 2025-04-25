@@ -53,3 +53,10 @@ services:
       - "8002:80"
     env_file:
       - slack_bot/.env
+    volumes:
+      - ./slack_bot:/app:delegated  # Mount local code for development
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1  # Prevents Python from writing .pyc files
+      - PYTHONUNBUFFERED=1  # Prevents Python from buffering stdout and stderr
+    command: ["uvicorn", "main:fast_api", "--host", "0.0.0.0", "--port", "80", "--reload"]  # Enable auto-reload
