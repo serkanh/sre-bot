@@ -179,6 +179,74 @@ The following functions are defined in `agent_root/agent_tools/kube_tools.py` an
 
 *(Add detailed descriptions or link to code/docstrings if necessary)*
 
+
+# Creating the Slack app:
+1. Go to https://api.slack.com/apps and click Create New App
+2. Name it and choose a workspace
+3. Add Scopes
+    - Go to OAuth & Permissions
+    - Under Bot Token Scopes, add permissions. For this app, we at least need `app_mentions:read`, which allows our app to view messages that directly mention our bot, and `chat:write`, which allows our app to send messages
+4. Scroll to the top of the OAuth & Permissions page and click Install App to Workspace
+5. App needs to be approved by workspace owner.
+
+
+Example app manifest:
+
+````yaml
+display_information:
+  name: sre-bot
+features:
+  bot_user:
+    display_name: sre-bot
+    always_online: false
+  slash_commands:
+    - command: /sre-bot:scale
+      url: http://<ngrok-url>.ngrok-free.app/slack/events
+      description: "sre-bot scale "
+      should_escape: false
+oauth_config:
+  scopes:
+    user:
+      - reactions:read
+    bot:
+      - app_mentions:read
+      - channels:join
+      - channels:history
+      - chat:write
+      - chat:write.customize
+      - commands
+      - groups:history
+      - im:write
+      - chat:write.public
+      - reactions:read
+      - mpim:history
+      - im:history
+settings:
+  event_subscriptions:
+    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+    bot_events:
+      - reaction_added
+  interactivity:
+    is_enabled: true
+    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+
+
+````
+
+# Setup
+
+Install [ngrok](https://ngrok.com)
+
+Start the application via docker-compose while inside the app folder.
+`docker compose up`
+
+Port exposed locally is port 80 so we will have ngrok point to that port
+
+`ngrok http 80`
+
 ## Security Note
 
 This agent may require access to sensitive systems and data (Kubernetes cluster, potentially AWS). Ensure that:
