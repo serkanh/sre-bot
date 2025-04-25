@@ -37,8 +37,6 @@ services:
       - KUBECONFIG=/root/.kube/config
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - AWS_PROFILE=${AWS_PROFILE}
-    env_file:
-      - .env
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
@@ -53,6 +51,5 @@ services:
     restart: unless-stopped
     ports:
       - "8002:80"
-    environment:
-      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
-      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+    env_file:
+      - slack_bot/.env
