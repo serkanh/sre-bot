@@ -32,6 +32,7 @@ The SRE Assistant currently includes tools for interacting with Kubernetes clust
     - `kubernetes>=28.1.0`
     - `python-dateutil>=2.8.2`
     - `ruff` (for formatting and linting)
+    - `aiohttp>=3,<4`
     *(Add other necessary packages)*
 
 ## Installation (Local Development - Optional)
@@ -116,12 +117,24 @@ adk api
 To test the agent in API mode, use the following command first create a new session by issuing the following command:
 
 ```
-curl -X POST http://0.0.0.0:8001/apps/kube/users/u_123/sessions/s_123 -H "Content-Type: application/json" -d '{"state": {"key1": "value1", "key2": 42}}'
+curl -X POST http://0.0.0.0:8001/apps/agent_root/users/u_123/sessions/s_123 -H "Content-Type: application/json" -d '{"state": {"key1": "value1", "key2": 42}}'
 ```
 Followed by issuing the following command to send a message to the agent:
 
 ```
-curl -X POST http://0.0.0.0:8001/apps/kube/users/u_123/sessions/s_123/messages -H "Content-Type: application/json" -d '{"message": "How many pods are running in the default namespace?"}'
+curl -X POST http://0.0.0.0:8001/run \
+-H "Content-Type: application/json" \
+-d '{
+"app_name": "agent_root",
+"user_id": "u_123",
+"session_id": "s_123",
+"new_message": {
+    "role": "user",
+    "parts": [{
+    "text": "How many pods are running in the default namespace?"
+    }]
+}
+}'
 ```
 
 ### Running Locally (If Installation steps were followed)
