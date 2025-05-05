@@ -128,7 +128,7 @@ async def send_message_to_api(session: ConversationSession, message: str) -> str
             
             logger.info(f"Sending message to API at URL: {url}")
             logger.debug(f"Message payload: {payload}")
-            
+            # 60 seconds is the maximum timeout for the API to respond
             async with client.post(url, json=payload, timeout=60) as response:
                 if response.status == 200:
                     # Try to parse as JSON
