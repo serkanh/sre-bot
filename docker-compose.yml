@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  sre-bot:
+  sre-bot-web:
     build:
       context: .
       dockerfile: agent_root/Dockerfile-agent
@@ -17,9 +17,11 @@ services:
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - KUBECONFIG=/root/.kube/config
       - AWS_PROFILE=${AWS_PROFILE}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
+      - .:/app/
     command: ["adk", "web"]
 
   sre-bot-api:  
@@ -37,9 +39,11 @@ services:
       - KUBECONFIG=/root/.kube/config
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - AWS_PROFILE=${AWS_PROFILE}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
+      - .:/app/
     command: ["adk", "api_server"]
 
   slack-bot:

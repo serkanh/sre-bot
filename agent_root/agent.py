@@ -1,9 +1,10 @@
 from google.adk.agents import Agent, LlmAgent
 from .tools.kube_tools import *
+from google.adk.models.lite_llm import LiteLlm
 
 kubernetes_agent = Agent(
     name="kubernetes_agent",
-    model="gemini-2.0-flash-exp",
+    model=LiteLlm(model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"),
     instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
     description="An assistant that can help you with your Kubernetes cluster",
     tools=[
@@ -28,12 +29,16 @@ kubernetes_agent = Agent(
     output_key="kubernetes_agent_output",
 )
 
+
+
 sre_agent = LlmAgent(
     name="sre_agent",
-    model="gemini-2.0-flash-exp",
+    model=LiteLlm(model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"),
     description="An assistant that can help you with your Kubernetes cluster",
     instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
-    sub_agents=[kubernetes_agent],
+    sub_agents=[
+        kubernetes_agent,
+    ],
 )
 
 root_agent = sre_agent
