@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  sre-bot:
+  sre-bot-web:
     build:
       context: .
       dockerfile: agent_root/Dockerfile-agent
@@ -17,9 +17,11 @@ services:
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - KUBECONFIG=/root/.kube/config
       - AWS_PROFILE=${AWS_PROFILE}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
+      - .:/app/
     command: ["adk", "web"]
 
   sre-bot-api:  
@@ -37,7 +39,28 @@ services:
       - KUBECONFIG=/root/.kube/config
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - AWS_PROFILE=${AWS_PROFILE}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
+      - .:/app/
     command: ["adk", "api_server"]
+
+  slack-bot:
+    build:
+      context: ./slack_bot
+      dockerfile: Dockerfile
+    image: slack-bot:latest
+    container_name: slack-bot
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    env_file:
+      - slack_bot/.env
+    volumes:
+      - ./slack_bot:/app:delegated  # Mount local code for development
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1  # Prevents Python from writing .pyc files
+      - PYTHONUNBUFFERED=1  # Prevents Python from buffering stdout and stderr
+    command: ["uvicorn", "main:fast_api", "--host", "0.0.0.0", "--port", "80", "--reload"]  # Enable auto-reload

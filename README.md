@@ -32,6 +32,7 @@ The SRE Assistant currently includes tools for interacting with Kubernetes clust
     - `kubernetes>=28.1.0`
     - `python-dateutil>=2.8.2`
     - `ruff` (for formatting and linting)
+    - `aiohttp>=3,<4`
     *(Add other necessary packages)*
 
 ## Installation (Local Development - Optional)
@@ -106,6 +107,36 @@ The application is designed to run using Docker and Docker Compose, simplifying 
     ```
     The API will be accessible at `http://localhost:8001`. Refer to ADK documentation or the previous `Usage` section for example `curl` commands (adjusting the app name path if necessary, e.g., `/apps/agent_root/...`).
 
+
+To run the agent in API mode, use the following command:
+
+```bash
+adk api
+```
+
+To test the agent in API mode, use the following command first create a new session by issuing the following command:
+
+```
+curl -X POST http://0.0.0.0:8001/apps/agent_root/users/u_123/sessions/s_123 -H "Content-Type: application/json" -d '{"state": {"key1": "value1", "key2": 42}}'
+```
+Followed by issuing the following command to send a message to the agent:
+
+```
+curl -X POST http://0.0.0.0:8001/run \
+-H "Content-Type: application/json" \
+-d '{
+"app_name": "agent_root",
+"user_id": "u_123",
+"session_id": "s_123",
+"new_message": {
+    "role": "user",
+    "parts": [{
+    "text": "How many pods are running in the default namespace?"
+    }]
+}
+}'
+```
+
 ### Running Locally (If Installation steps were followed)
 
 You might be able to run the agent locally using the ADK CLI. The application name might be derived from the directory structure (`agent_root`).
@@ -178,6 +209,74 @@ The following functions are defined in `agent_root/agent_tools/kube_tools.py` an
 - `get_events_all_namespaces()`
 
 *(Add detailed descriptions or link to code/docstrings if necessary)*
+
+
+# Creating the Slack app:
+1. Go to https://api.slack.com/apps and click Create New App
+2. Name it and choose a workspace
+3. Add Scopes
+    - Go to OAuth & Permissions
+    - Under Bot Token Scopes, add permissions. For this app, we at least need `app_mentions:read`, which allows our app to view messages that directly mention our bot, and `chat:write`, which allows our app to send messages
+4. Scroll to the top of the OAuth & Permissions page and click Install App to Workspace
+5. App needs to be approved by workspace owner.
+
+
+Example app manifest:
+
+````yaml
+display_information:
+  name: sre-bot
+features:
+  bot_user:
+    display_name: sre-bot
+    always_online: false
+  slash_commands:
+    - command: /sre-bot:scale
+      url: http://<ngrok-url>.ngrok-free.app/slack/events
+      description: "sre-bot scale "
+      should_escape: false
+oauth_config:
+  scopes:
+    user:
+      - reactions:read
+    bot:
+      - app_mentions:read
+      - channels:join
+      - channels:history
+      - chat:write
+      - chat:write.customize
+      - commands
+      - groups:history
+      - im:write
+      - chat:write.public
+      - reactions:read
+      - mpim:history
+      - im:history
+settings:
+  event_subscriptions:
+    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+    bot_events:
+      - reaction_added
+  interactivity:
+    is_enabled: true
+    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+
+
+````
+
+# Setup
+
+Install [ngrok](https://ngrok.com)
+
+Start the application via docker-compose while inside the app folder.
+`docker compose up`
+
+Port exposed locally is port 80 so we will have ngrok point to that port
+
+`ngrok http 80`
 
 ## Security Note
 
