@@ -31,6 +31,8 @@ The SRE Assistant currently includes tools for interacting with Kubernetes clust
     - `google-adk`
     - `kubernetes>=28.1.0`
     - `python-dateutil>=2.8.2`
+    - `litellm>=1.63.11` (required for proprietary model integration)
+    - `boto3==1.38.7` (required for AWS services and Bedrock models)
     - `ruff` (for formatting and linting)
     - `aiohttp>=3,<4`
     *(Add other necessary packages)*
@@ -72,6 +74,9 @@ The application is designed to run using Docker and Docker Compose, simplifying 
     ```bash
     # Mandatory
     export GOOGLE_API_KEY="your-api-key"
+    
+    # Optional: For Anthropic Claude model access
+    export ANTHROPIC_API_KEY="your-anthropic-api-key"
 
     # Optional: Specify the Kubernetes context to use (if different from default)
     # Note: The application code must explicitly use this variable.
@@ -137,6 +142,50 @@ curl -X POST http://0.0.0.0:8001/run \
 }'
 ```
 
+### Running the Slack Bot
+
+The repository also includes a Slack bot integration that allows users to interact with the agent directly from Slack:
+
+1. Ensure you have set up the Slack app as described in the "Creating the Slack app" section below.
+
+2. Configure the `.env` file in the `slack_bot` directory with your Slack credentials:
+   ```
+   SLACK_BOT_TOKEN=xoxb-your-token
+   SLACK_SIGNING_SECRET=your-signing-secret
+   BOT_PREFIX=your-bot-name
+   ```
+
+3. Start the Slack bot container:
+   ```bash
+   docker-compose up -d slack-bot
+   ```
+
+4. The Slack bot will be accessible at `http://localhost:8002`.
+
+5. For external access, set up ngrok as described in the Setup section.
+
+### Troubleshooting
+
+If you encounter communication timeouts between services (for example, between slack-bot and sre-bot-api):
+
+1. Check that all containers are running:
+   ```bash
+   docker-compose ps
+   ```
+   
+2. Verify the network connectivity between containers:
+   ```bash
+   docker network inspect $(docker network ls --filter name=sre-bot --format "{{.Name}}")
+   ```
+
+3. Check the logs for specific containers:
+   ```bash
+   docker-compose logs slack-bot
+   docker-compose logs sre-bot-api
+   ```
+
+4. Ensure the API endpoints are correctly configured in the Slack bot code.
+
 ### Running Locally (If Installation steps were followed)
 
 You might be able to run the agent locally using the ADK CLI. The application name might be derived from the directory structure (`agent_root`).
@@ -180,6 +229,11 @@ Run these commands from the project's root directory. Configuration is in `pypro
     - `utils.py`: Utility functions.
   - `__init__.py`: Package initialization file.
   - `requirements.txt`: Python dependencies for the agent application.
+- `slack_bot/`
+  - `main.py`: The main Slack bot implementation.
+  - `requirements.txt`: Python dependencies for the Slack bot.
+  - `Dockerfile`: Instructions for building the Slack bot container.
+  - `.env`: Configuration for the Slack bot (not tracked in version control).
 - `docker-compose.yml`: Docker Compose configuration for running services.
 - `Dockerfile`: Instructions for building the Docker image.
 - `pyproject.toml`: Configuration for Ruff (linting/formatting) and other potential Python tools.
