@@ -1,6 +1,7 @@
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from typing import Dict, List, Optional
+from datetime import datetime, timedelta, timezone
 
 config.load_config()
 
@@ -355,37 +356,67 @@ def _format_k8s_events(events_items: List) -> List[Dict]:
     return formatted_events
 
 
-def get_events(namespace: str = "default", limit: int = 200) -> List[Dict]:
+def get_events(namespace: str = "default", limit: int = 200, time_window_minutes: Optional[int] = None) -> List[Dict]:
     """
-    Get Kubernetes events for a specific namespace with a configurable limit.
+    Get Kubernetes events for a specific namespace with a configurable limit and time window.
 
     Args:
         namespace (str): The namespace to get events from. Defaults to "default".
         limit (int): Maximum number of events to return. Default is 200.
+        time_window_minutes (Optional[int]): If provided, only return events from the last N minutes.
+                                           Can be used to specify minutes or hours (e.g., 60 for last hour, 
+                                           1440 for last day).
 
     Returns:
         List[Dict]: List of events with their details.
     """
     try:
         events = api_v1.list_namespaced_event(namespace, limit=limit)
-        return _format_k8s_events(events.items)
+        formatted_events = _format_k8s_events(events.items)
+        
+        # Filter by time window if specified
+        if time_window_minutes is not None:
+            # Create timezone-aware datetime in UTC
+            cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=time_window_minutes)
+            formatted_events = [
+                event for event in formatted_events
+                if event["last_seen"] is not None and 
+                   datetime.fromisoformat(event["last_seen"]) >= cutoff_time
+            ]
+        
+        return formatted_events
     except ApiException as e:
         return [{"error": f"Failed to get events for namespace {namespace}: {str(e)}"}]
 
 
-def get_events_all_namespaces(limit: int = 200) -> List[Dict]:
+def get_events_all_namespaces(limit: int = 200, time_window_minutes: Optional[int] = None) -> List[Dict]:
     """
-    Get Kubernetes events across all namespaces with a configurable limit.
+    Get Kubernetes events across all namespaces with a configurable limit and time window.
 
     Args:
         limit (int): Maximum number of events to return. Default is 200.
+        time_window_minutes (Optional[int]): If provided, only return events from the last N minutes.
+                                           Can be used to specify minutes or hours (e.g., 60 for last hour, 
+                                           1440 for last day).
 
     Returns:
         List[Dict]: List of events from all namespaces with their details.
     """
     try:
         events = api_v1.list_event_for_all_namespaces(limit=limit)
-        return _format_k8s_events(events.items)
+        formatted_events = _format_k8s_events(events.items)
+        
+        # Filter by time window if specified
+        if time_window_minutes is not None:
+            # Create timezone-aware datetime in UTC
+            cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=time_window_minutes)
+            formatted_events = [
+                event for event in formatted_events
+                if event["last_seen"] is not None and 
+                   datetime.fromisoformat(event["last_seen"]) >= cutoff_time
+            ]
+        
+        return formatted_events
     except ApiException as e:
         return [{"error": f"Failed to get events across all namespaces: {str(e)}"}]
 
