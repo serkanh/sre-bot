@@ -5,3 +5,5 @@ google-adk
 litellm>=1.63.11
 # Required for Bedrock models
 boto3==1.38.7
+# Required for MCP
+uv==0.7.2
