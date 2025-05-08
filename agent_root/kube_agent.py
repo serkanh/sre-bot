@@ -8,7 +8,9 @@ async def kubernetes_agent():
     exit_stack = AsyncExitStack()
     agent = Agent(
         name="kubernetes_agent",
-        model=LiteLlm(model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"),
+        model=LiteLlm(
+            model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        ),
         instruction="You are experienced SRE/Devops expert specialized in AWS, Kubernetes and various tools that are relevant to the cloud native ecosystem.",
         description="An assistant that can help you with your Kubernetes cluster",
         tools=[
