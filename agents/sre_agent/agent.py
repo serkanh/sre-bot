@@ -11,7 +11,7 @@ async def create_root_agent():
     agent = Agent(
         name="root_agent",
         model=LiteLlm(
-            model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+            model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.deepseek.r1-v1:0"
         ),
         description="An assistant that can help you with your Kubernetes cluster and AWS Cost Analysis",
         instruction="""
