@@ -21,7 +21,7 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - ./agent_root:/app/
+      - ./agents:/app/  # Mount the entire project directory
     command: ["adk", "web"]
 
   sre-bot-api:  
@@ -43,7 +43,7 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - ./agent_root:/app/
+      - ./agents:/app/
     command: ["adk", "api_server"]
 
   slack-bot:
