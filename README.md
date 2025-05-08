@@ -36,6 +36,8 @@ The SRE Assistant currently includes tools for interacting with Kubernetes clust
     - `ruff` (for formatting and linting)
     - `aiohttp>=3,<4`
     *(Add other necessary packages)*
+- For development:
+    - `pre-commit` (for running pre-commit hooks)
 
 ## Installation (Local Development - Optional)
 
@@ -57,12 +59,22 @@ While running via Docker is recommended, you can set up a local environment:
     pip install -r agent_root/requirements.txt
     ```
 
-4.  Set up your Google API key:
+4.  For development, install additional dependencies:
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+
+5.  Set up pre-commit hooks:
+    ```bash
+    pre-commit install
+    ```
+
+6.  Set up your Google API key:
     ```bash
     export GOOGLE_API_KEY="your-api-key"
     ```
 
-5.  Ensure `kubectl` is configured correctly and any necessary AWS profiles are set up.
+7.  Ensure `kubectl` is configured correctly and any necessary AWS profiles are set up.
 
 ## Usage (Docker Recommended)
 
@@ -203,7 +215,7 @@ adk web
 
 This project uses Ruff for code formatting and linting (following PEP 8).
 
-1. Ensure Ruff is installed (via `pip install -r agent_root/requirements.txt`).
+1. Ensure Ruff is installed (via `pip install -r requirements-dev.txt`).
 2. Check for issues:
    ```bash
    ruff check .
@@ -218,6 +230,34 @@ This project uses Ruff for code formatting and linting (following PEP 8).
    ```
 
 Run these commands from the project's root directory. Configuration is in `pyproject.toml`.
+
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality before committing changes. The hooks are configured in `.pre-commit-config.yaml`.
+
+1. Install pre-commit if you haven't already:
+   ```bash
+   pip install pre-commit
+   ```
+
+2. Set up the hooks:
+   ```bash
+   pre-commit install
+   ```
+
+3. The hooks will automatically run when you commit changes. Currently, the hooks include:
+   - Ruff format: automatically formats your code
+   - Ruff linting: checks for code issues and fixes them when possible
+
+4. To run the hooks manually on all files:
+   ```bash
+   pre-commit run --all-files
+   ```
+
+5. To run a specific hook:
+   ```bash
+   pre-commit run ruff-format
+   ```
 
 ## Structure
 
