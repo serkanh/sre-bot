@@ -21,7 +21,7 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - .:/app/
+      - ./agent_root:/app/
     command: ["adk", "web"]
 
   sre-bot-api:  
@@ -43,7 +43,7 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - .:/app/
+      - ./agent_root:/app/
     command: ["adk", "api_server"]
 
   slack-bot:
