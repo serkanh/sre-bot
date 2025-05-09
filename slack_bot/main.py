@@ -27,14 +27,18 @@ class ConversationSession:
         self.channel = channel
         self.user = user
         self.thread_ts = thread_ts
-        self.session_id = f"s_{channel}_{user}_{datetime.now().timestamp()}"
+        # Use thread_ts in the session_id if available for continuity
+        thread_id = thread_ts if thread_ts else f"{datetime.now().timestamp()}"
+        self.session_id = f"s_{channel}_{thread_id}"
         self.last_activity = datetime.now()
         self.user_id = f"u_{user}"  # Unique user ID for the API
 
     def update_activity(self):
         self.last_activity = datetime.now()
 
-    def is_expired(self, timeout_minutes: int = 5) -> bool:
+    def is_expired(
+        self, timeout_minutes: int = 120
+    ) -> bool:  # Increased timeout to 2 hours
         return datetime.now() - self.last_activity > timedelta(minutes=timeout_minutes)
 
 
@@ -42,29 +46,66 @@ class ConversationSession:
 class SessionManager:
     def __init__(self):
         self.sessions: Dict[str, ConversationSession] = {}
-        self.cleanup_interval = 300  # 5 minutes
+        self.cleanup_interval = 7200  # 2 hours (120 minutes)
+        # New dictionary to map thread_ts to session_id for continuity
+        self.thread_session_map: Dict[str, str] = {}
 
     def get_session(
         self, channel: str, user: str, thread_ts: str | None = None
     ) -> ConversationSession:
-        # Use thread_ts as part of the key if it exists
-        key = f"{channel}_{user}_{thread_ts if thread_ts else 'main'}"
-
         # Clean up expired sessions
         self._cleanup_expired_sessions()
+
+        # For thread continuity, first check if we already have a session for this thread
+        thread_key = f"{channel}_{thread_ts}" if thread_ts else None
+
+        # If this is a threaded conversation and we have a session for this thread
+        if thread_ts and thread_key in self.thread_session_map:
+            existing_session_key = self.thread_session_map[thread_key]
+
+            # Check if the mapped session still exists and is not expired
+            if (
+                existing_session_key in self.sessions
+                and not self.sessions[existing_session_key].is_expired()
+            ):
+                logger.info(
+                    f"Reusing existing session for thread {thread_ts}: {existing_session_key}"
+                )
+                session = self.sessions[existing_session_key]
+                session.update_activity()
+                return session
+
+        # Normal key format: channel + user + thread
+        key = f"{channel}_{user}_{thread_ts if thread_ts else 'main'}"
 
         # Create new session if doesn't exist or is expired
         if key not in self.sessions or self.sessions[key].is_expired():
             self.sessions[key] = ConversationSession(channel, user, thread_ts)
+
+            # If this is a threaded message, record the mapping from thread to session
+            if thread_ts:
+                self.thread_session_map[thread_key] = key
+                logger.info(f"Created new session for thread {thread_ts}: {key}")
         else:
             self.sessions[key].update_activity()
+            logger.info(f"Using existing session: {key}")
 
         return self.sessions[key]
 
     def _cleanup_expired_sessions(self):
-        expired = [k for k, v in self.sessions.items() if v.is_expired()]
-        for k in expired:
+        expired_keys = [k for k, v in self.sessions.items() if v.is_expired()]
+
+        for k in expired_keys:
+            # Also remove any thread mappings to this session
+            expired_session = self.sessions[k]
+            if expired_session.thread_ts:
+                thread_key = f"{expired_session.channel}_{expired_session.thread_ts}"
+                if thread_key in self.thread_session_map:
+                    del self.thread_session_map[thread_key]
+
+            # Remove the session
             del self.sessions[k]
+            logger.info(f"Cleaned up expired session: {k}")
 
 
 session_manager = SessionManager()

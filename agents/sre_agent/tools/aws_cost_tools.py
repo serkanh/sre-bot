@@ -4,12 +4,16 @@ from datetime import datetime, timedelta, date
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import calendar
+import logging
 
 # Initialize the Cost Explorer client
 cost_explorer = boto3.client("ce")
 
 # Thread pool for running blocking boto3 operations
 _thread_pool = ThreadPoolExecutor()
+
+# Initialize a logger
+logger = logging.getLogger(__name__)
 
 
 async def _run_in_executor(func, *args, **kwargs):
@@ -234,6 +238,16 @@ async def get_cost_trend(
             period_start = period["TimePeriod"]["Start"]
             period_end = period["TimePeriod"]["End"]
 
+            # Check if Total exists and has any metrics
+            if "Total" not in period or not period["Total"]:
+                logger.warning(
+                    f"No Total metrics found for period {period_start} to {period_end}"
+                )
+                total_by_period.append(
+                    {"start": period_start, "end": period_end, "total": 0}
+                )
+                continue
+
             # Check which metric is available
             if "UnblendedCost" in period["Total"]:
                 total = float(period["Total"]["UnblendedCost"]["Amount"])
@@ -244,9 +258,16 @@ async def get_cost_trend(
             elif "NetAmortizedCost" in period["Total"]:
                 total = float(period["Total"]["NetAmortizedCost"]["Amount"])
             else:
-                # Use the first available metric
-                first_metric = list(period["Total"].keys())[0]
-                total = float(period["Total"][first_metric]["Amount"])
+                # Try to get the first available metric, if any exist
+                try:
+                    first_metric = list(period["Total"].keys())[0]
+                    total = float(period["Total"][first_metric]["Amount"])
+                except (IndexError, KeyError):
+                    # No metrics found, use 0
+                    logger.warning(
+                        f"No metrics found in Total for period {period_start} to {period_end}"
+                    )
+                    total = 0
 
             total_by_period.append(
                 {"start": period_start, "end": period_end, "total": total}
