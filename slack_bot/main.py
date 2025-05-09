@@ -75,7 +75,7 @@ async def create_api_session(session: ConversationSession) -> bool:
     async with aiohttp.ClientSession() as client:
         try:
             # Use the format from the README examples
-            url = f"http://sre-bot-api:8000/apps/agent_root/users/{session.user_id}/sessions/{session.session_id}"
+            url = f"http://sre-bot-api:8000/apps/sre_agent/users/{session.user_id}/sessions/{session.session_id}"
             payload = {
                 "state": {
                     "channel": session.channel,
@@ -128,9 +128,9 @@ async def send_message_to_api(session: ConversationSession, message: str) -> str
     async with aiohttp.ClientSession() as client:
         try:
             # Use the /run endpoint which we know works from the logs
-            url = "http://sre-bot-api:8000/run"
+            url = f"http://sre-bot-api:8000/run"
             payload = {
-                "app_name": "agent_root",
+                "app_name": "sre_agent",
                 "user_id": session.user_id,
                 "session_id": session.session_id,
                 "new_message": {"role": "user", "parts": [{"text": message}]},

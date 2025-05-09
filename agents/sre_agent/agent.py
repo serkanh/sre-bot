@@ -2,12 +2,14 @@ from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
 from .kube_agent import kubernetes_agent
 from .aws_mcps import get_aws_core_mcp, get_aws_cost_analysis_mcp
+from .aws_cost_agent import get_aws_cost_agent
 
 
 async def create_root_agent():
     k8s_agent, exit_stack = await kubernetes_agent()
     aws_core_mcp_agent, exit_stack = await get_aws_core_mcp()
     aws_cost_analysis_mcp_agent, exit_stack = await get_aws_cost_analysis_mcp()
+    aws_cost_agent, exit_stack = await get_aws_cost_agent()
     agent = Agent(
         name="root_agent",
         model=LiteLlm(
@@ -20,8 +22,14 @@ async def create_root_agent():
         - kubernetes_agent: for Kubernetes related queries
         - aws_core_mcp_agent: Core mcp server for AWS related queries
         - aws_cost_analysis_mcp_agent: Cost analysis mcp server for AWS Cost Analysis
+        - aws_cost_agent: for AWS Cost Analysis
         """,
-        sub_agents=[k8s_agent, aws_core_mcp_agent, aws_cost_analysis_mcp_agent],
+        sub_agents=[
+            k8s_agent,
+            aws_core_mcp_agent,
+            aws_cost_analysis_mcp_agent,
+            aws_cost_agent,
+        ],
     )
 
     return agent, exit_stack

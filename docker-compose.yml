@@ -4,7 +4,7 @@ services:
   sre-bot-web:
     build:
       context: .
-      dockerfile: agent_root/Dockerfile-agent
+      dockerfile: agents/sre_agent/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot
     restart: unless-stopped
@@ -27,7 +27,7 @@ services:
   sre-bot-api:  
     build:
       context: .
-      dockerfile: agent_root/Dockerfile-agent
+      dockerfile: agents/sre_agent/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot-api
     restart: unless-stopped
