@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi import Request
 from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
 from slack_bolt.async_app import AsyncApp
-from slack_sdk.web.async_client import AsyncWebClient
 
 from app.modules.health import healthcheck
 

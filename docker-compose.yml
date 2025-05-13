@@ -4,7 +4,7 @@ services:
   sre-bot-web:
     build:
       context: .
-      dockerfile: agent_root/Dockerfile-agent
+      dockerfile: agents/sre_agent/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot
     restart: unless-stopped
@@ -21,13 +21,13 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - .:/app/
+      - ./agents:/app/  # Mount the entire project directory
     command: ["adk", "web"]
 
   sre-bot-api:  
     build:
       context: .
-      dockerfile: agent_root/Dockerfile-agent
+      dockerfile: agents/sre_agent/Dockerfile-agent
     image: sre-bot:latest
     container_name: sre-bot-api
     restart: unless-stopped
@@ -43,7 +43,7 @@ services:
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
-      - .:/app/
+      - ./agents:/app/
     command: ["adk", "api_server"]
 
   slack-bot:
