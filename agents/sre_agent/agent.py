@@ -7,14 +7,42 @@ from google.adk.sessions import DatabaseSessionService, InMemorySessionService
 from .settings import DB_URL
 import logging
 from google.adk.runners import Runner
+import functools
+import traceback
+
+# Import our custom JSON encoder patch
+from .json_utils import *
+
+
+# Error handling decorator for telemetry errors
+def handle_telemetry_errors(func):
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except TypeError as e:
+            if "not JSON serializable" in str(e):
+                logging.warning(f"Telemetry serialization error: {e}")
+                # Continue execution without telemetry
+                return None
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error in {func.__name__}: {e}")
+            logging.error(traceback.format_exc())
+            raise
+
+    return wrapper
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 try:
     session_service = DatabaseSessionService(db_url=DB_URL)
-    logging.info(f"Successfully connected to database at {DB_URL}")
+    logger.info(f"Successfully connected to database at {DB_URL}")
 except Exception as e:
-    logging.warning(
-        f"Could not connect to database: {e}. Falling back to in-memory session service."
-    )
+    logger.error(f"Could not connect to database: {e}", exc_info=True)
+    logger.warning("Falling back to in-memory session service.")
     session_service = InMemorySessionService()
 
 
@@ -57,10 +85,12 @@ root_agent = get_root_agent()
 
 
 # Initialize runner for the CLI
+@handle_telemetry_errors
 async def get_runner():
     agent, exit_stack = await get_root_agent()
+    logger.info("Creating runner with session service")
     return Runner(agent=agent, app_name="sre_agent", session_service=session_service)
 
 
-# Making runner available, but CLI will use root_agent directly
-runner = get_runner()
+# Don't call async function directly, just expose it for ADK to await properly
+runner = get_runner  # Note: without parentheses, just the function reference
