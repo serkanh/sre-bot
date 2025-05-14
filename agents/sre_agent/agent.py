@@ -3,6 +3,19 @@ from google.adk.models.lite_llm import LiteLlm
 from .kube_agent import kubernetes_agent
 from .aws_mcps import get_aws_core_mcp, get_aws_cost_analysis_mcp
 from .aws_cost_agent import get_aws_cost_agent
+from google.adk.sessions import DatabaseSessionService, InMemorySessionService
+from .settings import DB_URL
+import logging
+from google.adk.runners import Runner
+
+try:
+    session_service = DatabaseSessionService(db_url=DB_URL)
+    logging.info(f"Successfully connected to database at {DB_URL}")
+except Exception as e:
+    logging.warning(
+        f"Could not connect to database: {e}. Falling back to in-memory session service."
+    )
+    session_service = InMemorySessionService()
 
 
 async def create_root_agent():
@@ -39,5 +52,15 @@ async def get_root_agent():
     return await create_root_agent()
 
 
-# Don't call create_root_agent directly
+# This is what the CLI looks for
 root_agent = get_root_agent()
+
+
+# Initialize runner for the CLI
+async def get_runner():
+    agent, exit_stack = await get_root_agent()
+    return Runner(agent=agent, app_name="sre_agent", session_service=session_service)
+
+
+# Making runner available, but CLI will use root_agent directly
+runner = get_runner()

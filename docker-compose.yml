@@ -18,11 +18,18 @@ services:
       - KUBECONFIG=/root/.kube/config
       - AWS_PROFILE=${AWS_PROFILE}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=srebot
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/  # Mount the entire project directory
     command: ["adk", "web"]
+    depends_on:
+      - postgres
 
   sre-bot-api:  
     build:
@@ -40,11 +47,18 @@ services:
       - KUBE_CONTEXT=${KUBE_CONTEXT}
       - AWS_PROFILE=${AWS_PROFILE}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=srebot
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/
     command: ["adk", "api_server"]
+    depends_on:
+      - postgres
 
   slack-bot:
     build:
@@ -64,3 +78,18 @@ services:
       - PYTHONDONTWRITEBYTECODE=1  # Prevents Python from writing .pyc files
       - PYTHONUNBUFFERED=1  # Prevents Python from buffering stdout and stderr
     command: ["uvicorn", "main:fast_api", "--host", "0.0.0.0", "--port", "80", "--reload"]  # Enable auto-reload
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=srebot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
