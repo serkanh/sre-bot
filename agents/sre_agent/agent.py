@@ -9,9 +9,21 @@ import logging
 from google.adk.runners import Runner
 import functools
 import traceback
+from typing import Dict, Any
 
 # Import our custom JSON encoder patch
 from .json_utils import *
+
+# This will print DEBUG, INFO, WARNING, ERROR, and CRITICAL logs
+# DEBUG is the lowest level, so all higher levels will be printed as well
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Constants for session management
+APP_NAME = "sre_agent"
+USER_ID = "test_user"  # Match the existing session in the database
 
 
 # Error handling decorator for telemetry errors
@@ -34,8 +46,10 @@ def handle_telemetry_errors(func):
     return wrapper
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+def initialize_state() -> Dict[str, Any]:
+    """Initialize the default state for new sessions."""
+    return {"conversations": [], "context": {}, "preferences": {}}
+
 
 try:
     session_service = DatabaseSessionService(db_url=DB_URL)
@@ -44,6 +58,58 @@ except Exception as e:
     logger.error(f"Could not connect to database: {e}", exc_info=True)
     logger.warning("Falling back to in-memory session service.")
     session_service = InMemorySessionService()
+
+
+async def get_or_create_session():
+    """
+    Get an existing session or create a new one if none exists.
+
+    Returns:
+        str: Session ID for the current session
+    """
+    try:
+        logger.critical(f"DEBUG: get_or_create_session called")
+        logger.critical(
+            f"Checking for existing sessions for app_name={APP_NAME}, user_id={USER_ID}"
+        )
+        # Check for existing sessions for this user
+        existing_sessions = session_service.list_sessions(
+            app_name=APP_NAME,
+            user_id=USER_ID,
+        )
+
+        logger.info(
+            f"Found {len(existing_sessions.sessions) if existing_sessions else 0} existing sessions"
+        )
+
+        # If there's an existing session, use it, otherwise create a new one
+        if existing_sessions and len(existing_sessions.sessions) > 0:
+            # Use the most recent session
+            session_id = existing_sessions.sessions[0].id
+            logger.info(f"Continuing existing session: {session_id}")
+
+            # Log all sessions for debugging
+            for i, session in enumerate(existing_sessions.sessions):
+                logger.info(
+                    f"Session {i}: id={session.id}, create_time={session.create_time}"
+                )
+
+            return session_id
+        else:
+            # Create a new session with initial state
+            initial_state = initialize_state()
+            logger.info(f"Creating new session with initial state: {initial_state}")
+
+            new_session = session_service.create_session(
+                app_name=APP_NAME,
+                user_id=USER_ID,
+                state=initial_state,
+            )
+            logger.info(f"Created new session: {new_session.id}")
+            return new_session.id
+    except Exception as e:
+        logger.error(f"Error getting or creating session: {e}", exc_info=True)
+        raise
 
 
 async def create_root_agent():
@@ -89,7 +155,17 @@ root_agent = get_root_agent()
 async def get_runner():
     agent, exit_stack = await get_root_agent()
     logger.info("Creating runner with session service")
-    return Runner(agent=agent, app_name="sre_agent", session_service=session_service)
+
+    # Get or create a session
+    session_id = await get_or_create_session()
+    logger.info(f"Using session: {session_id}")
+
+    # Return runner with the session service
+    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+    logger.info(
+        f"Runner created with app_name: {APP_NAME}, user_id: {USER_ID}, session_id: {session_id}"
+    )
+    return runner
 
 
 # Don't call async function directly, just expose it for ADK to await properly
