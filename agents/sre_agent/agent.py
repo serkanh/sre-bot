@@ -34,14 +34,21 @@ def handle_telemetry_errors(func):
             return await func(*args, **kwargs)
         except TypeError as e:
             if "not JSON serializable" in str(e):
-                logging.warning(f"Telemetry serialization error: {e}")
+                logging.warning(
+                    f"Telemetry serialization error: {e} in {func.__name__}"
+                )
                 # Continue execution without telemetry
-                return None
+                return (
+                    None  # Or some default error value if the function expects a return
+                )
+            # Reraise other TypeErrors or handle them as needed
+            logging.error(f"TypeError in {func.__name__}: {e}", exc_info=True)
             raise
         except Exception as e:
-            logging.error(f"Unexpected error in {func.__name__}: {e}")
-            logging.error(traceback.format_exc())
-            raise
+            # Log the specific function name where the error occurred
+            logging.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
+            # traceback.format_exc() is automatically included by exc_info=True
+            raise  # Reraise the exception after logging
 
     return wrapper
 
@@ -52,9 +59,11 @@ def initialize_state() -> Dict[str, Any]:
 
 
 try:
+    # Attempt to connect to the database
     session_service = DatabaseSessionService(db_url=DB_URL)
     logger.info(f"Successfully connected to database at {DB_URL}")
 except Exception as e:
+    # Log the error and fall back to in-memory session service
     logger.error(f"Could not connect to database: {e}", exc_info=True)
     logger.warning("Falling back to in-memory session service.")
     session_service = InMemorySessionService()
@@ -67,38 +76,34 @@ async def get_or_create_session():
     Returns:
         str: Session ID for the current session
     """
+    logger.debug(
+        f"Attempting to get or create session for app_name='{APP_NAME}', user_id='{USER_ID}'"
+    )
     try:
-        logger.critical(f"DEBUG: get_or_create_session called")
-        logger.critical(
-            f"Checking for existing sessions for app_name={APP_NAME}, user_id={USER_ID}"
-        )
-        # Check for existing sessions for this user
         existing_sessions = session_service.list_sessions(
             app_name=APP_NAME,
             user_id=USER_ID,
         )
 
-        logger.info(
-            f"Found {len(existing_sessions.sessions) if existing_sessions else 0} existing sessions"
+        found_sessions_count = (
+            len(existing_sessions.sessions)
+            if existing_sessions and existing_sessions.sessions
+            else 0
         )
+        logger.info(f"Found {found_sessions_count} existing sessions.")
 
-        # If there's an existing session, use it, otherwise create a new one
-        if existing_sessions and len(existing_sessions.sessions) > 0:
-            # Use the most recent session
+        if found_sessions_count > 0:
             session_id = existing_sessions.sessions[0].id
             logger.info(f"Continuing existing session: {session_id}")
-
-            # Log all sessions for debugging
             for i, session in enumerate(existing_sessions.sessions):
-                logger.info(
-                    f"Session {i}: id={session.id}, create_time={session.create_time}"
+                logger.debug(
+                    f"Existing Session {i}: id={session.id}, create_time={session.create_time}"
                 )
-
             return session_id
         else:
-            # Create a new session with initial state
+            logger.info("No existing session found. Creating a new session.")
             initial_state = initialize_state()
-            logger.info(f"Creating new session with initial state: {initial_state}")
+            logger.debug(f"Initial state for new session: {initial_state}")
 
             new_session = session_service.create_session(
                 app_name=APP_NAME,
@@ -113,10 +118,18 @@ async def get_or_create_session():
 
 
 async def create_root_agent():
-    k8s_agent, exit_stack = await kubernetes_agent()
-    aws_core_mcp_agent, exit_stack = await get_aws_core_mcp()
-    aws_cost_analysis_mcp_agent, exit_stack = await get_aws_cost_analysis_mcp()
-    aws_cost_agent, exit_stack = await get_aws_cost_agent()
+    logger.debug("Creating root agent and its sub-agents...")
+    k8s_agent, k8s_exit_stack = await kubernetes_agent()
+    aws_core_mcp_agent, aws_core_exit_stack = await get_aws_core_mcp()
+    aws_cost_analysis_mcp_agent, aws_cost_exit_stack = await get_aws_cost_analysis_mcp()
+    aws_cost_agent, aws_cost_exit_stack = await get_aws_cost_agent()
+    # TODO: Properly handle multiple exit_stacks if they need individual management.
+    # For now, assuming the last one assigned is what might be used or they are managed internally by ADK.
+    # If specific cleanup is needed for each, they should be collected and returned.
+    exit_stack = (
+        aws_cost_exit_stack  # Placeholder for combined exit_stack logic if needed
+    )
+
     agent = Agent(
         name="root_agent",
         model=LiteLlm(
@@ -138,11 +151,12 @@ async def create_root_agent():
             aws_cost_agent,
         ],
     )
-
+    logger.info("Root agent created successfully.")
     return agent, exit_stack
 
 
 async def get_root_agent():
+    logger.debug("Getting root agent...")
     return await create_root_agent()
 
 
@@ -153,20 +167,24 @@ root_agent = get_root_agent()
 # Initialize runner for the CLI
 @handle_telemetry_errors
 async def get_runner():
+    logger.info("Initializing SRE Bot Runner...")
     agent, exit_stack = await get_root_agent()
-    logger.info("Creating runner with session service")
+    logger.debug("Root agent obtained for runner.")
 
-    # Get or create a session
     session_id = await get_or_create_session()
-    logger.info(f"Using session: {session_id}")
+    logger.debug(f"Session ID for runner: {session_id}")
 
-    # Return runner with the session service
-    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
-    logger.info(
-        f"Runner created with app_name: {APP_NAME}, user_id: {USER_ID}, session_id: {session_id}"
+    runner_instance = Runner(
+        agent=agent, app_name=APP_NAME, session_service=session_service
     )
-    return runner
+    logger.info(
+        f"Runner created: app_name='{APP_NAME}', user_id='{USER_ID}', session_id='{session_id}'"
+    )
+    # Note: exit_stack from create_root_agent is not currently returned or used by this get_runner.
+    # If cleanup is needed, ensure exit_stack is propagated and handled.
+    return runner_instance
 
 
 # Don't call async function directly, just expose it for ADK to await properly
 runner = get_runner  # Note: without parentheses, just the function reference
+logger.debug("SRE Agent module initialized.")

@@ -27,7 +27,8 @@ services:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/  # Mount the entire project directory
-    command: ["adk", "web"]
+    # session db url paramateer is necessary for web interface to write session data to the database
+    command: ["adk", "web", "--session_db_url=postgresql://postgres:postgres@postgres:5432/srebot"]
     depends_on:
       - postgres
 
@@ -56,7 +57,7 @@ services:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/
-    command: ["adk", "api_server"]
+    command: ["adk", "api_server", "--session_db_url=postgresql://postgres:postgres@postgres:5432/srebot"]
     depends_on:
       - postgres
 
