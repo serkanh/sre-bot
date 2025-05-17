@@ -4,20 +4,23 @@ A Google Agent Development Kit (ADK) powered assistant designed to help Site Rel
 
 ## Overview
 
-This repository contains an SRE Assistant Agent built with Google's Agent Development Kit (ADK). It aims to assist SREs by automating common tasks, providing system insights, and streamlining incident response through natural language conversations. The agent leverages the Google Gemini model to understand user queries and interacts with various monitoring and operational tools via defined functions.
+This repository contains an SRE Assistant Agent built with Google's Agent Development Kit (ADK). It aims to assist SREs by automating common tasks, providing system insights, and streamlining incident response through natural language conversations. The agent leverages Google's large language models to understand user queries and interacts with various monitoring, operational, and cloud service tools via defined functions and sub-agents.
 
-## Features (Potential - To be updated)
+## Features
 
-The SRE Assistant currently includes tools for interacting with Kubernetes clusters:
+The SRE Assistant includes tools and sub-agents for interacting with:
 
-- List resources (Namespaces, Deployments, Pods, Services, Secrets, DaemonSets, ConfigMaps) across all namespaces or within a specific namespace.
-- Get detailed information about specific Deployments and Pods.
-- Scale Deployments.
-- Retrieve logs from Pods.
-- Get resource health information.
-- Fetch cluster events.
-
-*(This list is based on tools defined in `agent_root/agent.py`. Future features might include AWS interactions, etc.)*
+- **Kubernetes Clusters:**
+  - List resources (Namespaces, Deployments, Pods, Services, Secrets, DaemonSets, ConfigMaps) across all namespaces or within a specific namespace.
+  - Get detailed information about specific Deployments and Pods.
+  - Scale Deployments.
+  - Retrieve logs from Pods.
+  - Get resource health information.
+  - Fetch cluster events.
+- **AWS Services & Cost Management:**
+  - **AWS Core MCP Agent**: Provides capabilities for general interactions with core AWS services (details on specific tools to be added as developed).
+  - **AWS Cost Analysis MCP Agent**: Offers tools and functions for querying and analyzing AWS cost and usage data (details on specific tools to be added as developed).
+  - **AWS Cost Agent**: A specialized sub-agent dedicated to in-depth AWS cost analysis, reporting, and providing insights.
 
 ## Prerequisites
 
@@ -261,28 +264,35 @@ This project uses pre-commit hooks to ensure code quality before committing chan
 
 ## Structure
 
-- `agent_root/`
-  - `agent.py`: Contains the main agent logic (ADK application definition, `root_agent`).
-  - `agent_tools/`: Contains Python modules defining tools the agent can use.
+- `agents/`
+  - `sre_agent/`
+    - `agent.py`: Contains the main SRE agent logic (ADK application definition, `root_agent`) and initialization of sub-agents.
+    - `kube_agent.py`: Defines the Kubernetes sub-agent and its tools.
+    - `aws_mcps.py`: (Assumed location) Defines the AWS Core MCP and AWS Cost Analysis MCP agents/tools.
+    - `aws_cost_agent.py`: (Assumed location) Defines the specialized AWS Cost Agent.
+    - `settings.py`: Configuration settings (e.g., `DB_URL`).
+    - `json_utils.py`: Custom JSON utilities.
     - `__init__.py`
-    - `kube_tools.py`: Functions for interacting with Kubernetes.
-    - `utils.py`: Utility functions.
-  - `__init__.py`: Package initialization file.
-  - `requirements.txt`: Python dependencies for the agent application.
+  - `__init__.py`
 - `slack_bot/`
   - `main.py`: The main Slack bot implementation.
+  - `modules/`: Helper modules for the Slack bot (e.g., `health.py`).
   - `requirements.txt`: Python dependencies for the Slack bot.
   - `Dockerfile`: Instructions for building the Slack bot container.
-  - `.env`: Configuration for the Slack bot (not tracked in version control).
+  - `.env.example`: Example environment variables for the Slack bot.
 - `docker-compose.yml`: Docker Compose configuration for running services.
-- `Dockerfile`: Instructions for building the Docker image.
-- `pyproject.toml`: Configuration for Ruff (linting/formatting) and other potential Python tools.
+- `Dockerfile`: Instructions for building the SRE Bot API Docker image.
+- `requirements-dev.txt`: Development-specific Python dependencies.
+- `pyproject.toml`: Configuration for Ruff (linting/formatting) and other Python tools.
+- `.pre-commit-config.yaml`: Configuration for pre-commit hooks.
 - `.gitignore`: Specifies intentionally untracked files that Git should ignore.
 - `README.md`: This documentation file.
 
-## Available Functions (Kubernetes Tools)
+## Available Functions and Capabilities
 
-The following functions are defined in `agent_root/agent_tools/kube_tools.py` and available to the agent:
+### Kubernetes Tools
+
+The following functions are defined in `agents/sre_agent/kube_agent.py` (or similar) and are available via the `kubernetes_agent`:
 
 - `list_namespaces()`
 - `list_deployments_from_namespace(namespace: str)`
@@ -302,8 +312,13 @@ The following functions are defined in `agent_root/agent_tools/kube_tools.py` an
 - `get_events(namespace: str)`
 - `get_events_all_namespaces()`
 
-*(Add detailed descriptions or link to code/docstrings if necessary)*
+### AWS Core MCP Capabilities (Illustrative)
 
+*(Tools provided by the `aws_core_mcp_agent` for interacting with various AWS services. Specific functions will be listed here as they are developed and exposed. Examples might include interacting with EC2, S3, IAM, etc.)*
+
+### AWS Cost Analysis MCP & Agent Capabilities (Illustrative)
+
+*(Tools and capabilities provided by the `aws_cost_analysis_mcp_agent` and the `aws_cost_agent` for querying AWS cost and usage, generating reports, and providing cost optimization insights. Specific functions/capabilities will be listed here, e.g., `get_monthly_cost_summary`, `analyze_service_costs_by_tag`.)*
 
 # Creating the Slack app:
 1. Go to https://api.slack.com/apps and click Create New App
@@ -317,7 +332,7 @@ The following functions are defined in `agent_root/agent_tools/kube_tools.py` an
 
 Example app manifest:
 
-````yaml
+```yaml
 display_information:
   name: sre-bot
 features:
@@ -359,7 +374,7 @@ settings:
   token_rotation_enabled: false
 
 
-````
+```
 
 # Setup
 
