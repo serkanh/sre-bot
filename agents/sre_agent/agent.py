@@ -6,6 +6,7 @@ from .aws_cost_agent import get_aws_cost_agent
 from google.adk.sessions import DatabaseSessionService, InMemorySessionService
 from .settings import DB_URL
 import logging
+import os  # Added for environment variable access
 from google.adk.runners import Runner
 import functools
 import traceback
@@ -14,12 +15,27 @@ from typing import Dict, Any
 # Import our custom JSON encoder patch
 from .json_utils import *
 
-# This will print DEBUG, INFO, WARNING, ERROR, and CRITICAL logs
-# DEBUG is the lowest level, so all higher levels will be printed as well
+# Determine log level from environment variable or default to INFO
+log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+numeric_log_level = getattr(logging, log_level_name, logging.INFO)
+
+# Configure logging
+# Using force=True (Python 3.8+) to ensure this configuration is applied
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=numeric_log_level,  # Set initial level here
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,
 )
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)  # Should be 'sre_agent.agent'
+
+# Explicitly set levels to be certain
+logging.getLogger().setLevel(numeric_log_level)  # Set root logger level
+logger.setLevel(numeric_log_level)  # Set sre_agent.agent logger level
+
+logger.info(
+    f"Logging initialized. Effective level: {logging.getLevelName(logger.getEffectiveLevel())}"
+)
 
 # Constants for session management
 APP_NAME = "sre_agent"
