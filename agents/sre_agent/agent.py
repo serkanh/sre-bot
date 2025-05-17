@@ -6,7 +6,7 @@ from .aws_cost_agent import get_aws_cost_agent
 from google.adk.sessions import DatabaseSessionService, InMemorySessionService
 from .settings import DB_URL
 import logging
-import os  # Added for environment variable access
+import os
 from google.adk.runners import Runner
 import functools
 import traceback
@@ -20,14 +20,12 @@ log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
 numeric_log_level = getattr(logging, log_level_name, logging.INFO)
 
 # Configure logging
-# Using force=True (Python 3.8+) to ensure this configuration is applied
 logging.basicConfig(
-    level=numeric_log_level,  # Set initial level here
+    level=numeric_log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     force=True,
 )
-
-logger = logging.getLogger(__name__)  # Should be 'sre_agent.agent'
+logger = logging.getLogger(__name__)
 
 # Explicitly set levels to be certain
 logging.getLogger().setLevel(numeric_log_level)  # Set root logger level
@@ -37,26 +35,12 @@ logger.info(
     f"Logging initialized. Effective level: {logging.getLevelName(logger.getEffectiveLevel())}"
 )
 
-# --- Conditional User ID based on SLACK_ENABLED ---
-IS_SLACK_ENABLED = os.environ.get("SLACK_ENABLED", "false").lower() in (
-    "true",
-    "1",
-    "yes",
+# Constants for session management
+APP_NAME = "sre_agent"
+USER_ID = "test_user"  # Default for agent.py contexts (e.g., __main__ or runner init log). API requests will use user_id from their payload.
+logger.info(
+    f"Default USER_ID for agent.py contexts: '{USER_ID}'. API requests will use user_id from their payload if provided."
 )
-
-APP_NAME = "sre_agent"  # Consistent app name
-
-if IS_SLACK_ENABLED:
-    USER_ID = "slack_context_default_user"  # Default for agent.py contexts when Slack is enabled
-    logger.info(
-        f"SLACK_ENABLED is true. Default USER_ID for agent.py contexts (e.g., __main__ or runner init log): '{USER_ID}'. API requests will use user_id from their payload."
-    )
-else:
-    USER_ID = "test_user"  # Default for non-Slack contexts
-    logger.info(
-        f"SLACK_ENABLED is false. Default USER_ID for agent.py contexts: '{USER_ID}'."
-    )
-# --- End Conditional User ID ---
 
 
 # Error handling decorator for telemetry errors
