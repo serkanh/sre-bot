@@ -2,8 +2,9 @@
 
 A Google Agent Development Kit (ADK) powered assistant designed to help Site Reliability Engineers (SREs) with operational tasks and monitoring, particularly focused on Kubernetes interactions.
 
-![Cost Reporting Demo](https://github.com/serkanh/static-files/blob/main/gifs/cost-reporting-demo.gif)
+![Cost Reporting Demo](https://github.com/serkanh/static-files/blob/main/gifs/cost-reporting-demo.gif?raw=true)
 
+![Kubernetes Demo](https://github.com/serkanh/static-files/blob/main/gifs/eks-cluster-demo.gif?raw=true)
 
 ## Overview
 
