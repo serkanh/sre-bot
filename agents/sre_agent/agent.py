@@ -37,9 +37,26 @@ logger.info(
     f"Logging initialized. Effective level: {logging.getLevelName(logger.getEffectiveLevel())}"
 )
 
-# Constants for session management
-APP_NAME = "sre_agent"
-USER_ID = "test_user"  # Match the existing session in the database
+# --- Conditional User ID based on SLACK_ENABLED ---
+IS_SLACK_ENABLED = os.environ.get("SLACK_ENABLED", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
+APP_NAME = "sre_agent"  # Consistent app name
+
+if IS_SLACK_ENABLED:
+    USER_ID = "slack_context_default_user"  # Default for agent.py contexts when Slack is enabled
+    logger.info(
+        f"SLACK_ENABLED is true. Default USER_ID for agent.py contexts (e.g., __main__ or runner init log): '{USER_ID}'. API requests will use user_id from their payload."
+    )
+else:
+    USER_ID = "test_user"  # Default for non-Slack contexts
+    logger.info(
+        f"SLACK_ENABLED is false. Default USER_ID for agent.py contexts: '{USER_ID}'."
+    )
+# --- End Conditional User ID ---
 
 
 # Error handling decorator for telemetry errors
