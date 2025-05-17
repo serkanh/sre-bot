@@ -2,6 +2,9 @@
 
 A Google Agent Development Kit (ADK) powered assistant designed to help Site Reliability Engineers (SREs) with operational tasks and monitoring, particularly focused on Kubernetes interactions.
 
+![Cost Reporting Demo](https://github.com/serkanh/static-files/blob/main/gifs/cost-reporting-demo.gif)
+
+
 ## Overview
 
 This repository contains an SRE Assistant Agent built with Google's Agent Development Kit (ADK). It aims to assist SREs by automating common tasks, providing system insights, and streamlining incident response through natural language conversations. The agent leverages Google's large language models to understand user queries and interacts with various monitoring, operational, and cloud service tools via defined functions and sub-agents.
