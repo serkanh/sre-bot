@@ -53,6 +53,7 @@ services:
       - DB_NAME=srebot
       - DB_USER=postgres
       - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - LOG_LEVEL=DEBUG
     volumes:
       - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro

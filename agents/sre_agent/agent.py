@@ -6,6 +6,7 @@ from .aws_cost_agent import get_aws_cost_agent
 from google.adk.sessions import DatabaseSessionService, InMemorySessionService
 from .settings import DB_URL
 import logging
+import os
 from google.adk.runners import Runner
 import functools
 import traceback
@@ -14,16 +15,32 @@ from typing import Dict, Any
 # Import our custom JSON encoder patch
 from .json_utils import *
 
-# This will print DEBUG, INFO, WARNING, ERROR, and CRITICAL logs
-# DEBUG is the lowest level, so all higher levels will be printed as well
+# Determine log level from environment variable or default to INFO
+log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+numeric_log_level = getattr(logging, log_level_name, logging.INFO)
+
+# Configure logging
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=numeric_log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
+# Explicitly set levels to be certain
+logging.getLogger().setLevel(numeric_log_level)  # Set root logger level
+logger.setLevel(numeric_log_level)  # Set sre_agent.agent logger level
+
+logger.info(
+    f"Logging initialized. Effective level: {logging.getLevelName(logger.getEffectiveLevel())}"
+)
+
 # Constants for session management
 APP_NAME = "sre_agent"
-USER_ID = "test_user"  # Match the existing session in the database
+USER_ID = "test_user"  # Default for agent.py contexts (e.g., __main__ or runner init log). API requests will use user_id from their payload.
+logger.info(
+    f"Default USER_ID for agent.py contexts: '{USER_ID}'. API requests will use user_id from their payload if provided."
+)
 
 
 # Error handling decorator for telemetry errors
