@@ -12,7 +12,7 @@ async def get_aws_cost_agent():
     agent = Agent(
         name="aws_cost_agent",
         model=LiteLlm(
-            model="bedrock/arn:aws:bedrock:us-east-1:827541288795:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+            model="bedrock/arn:aws:bedrock:us-west-2:812201244513:inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0"
         ),
         instruction=load_instruction_from_file(
             os.path.join(current_dir, "prompts", "aws_cost_agent_system_prompt.md")

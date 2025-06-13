@@ -9,7 +9,7 @@ import os
 
 async def get_aws_core_mcp():
     """Gets tools from MCP Server."""
-    tools, exit_stack = await MCPToolset.from_server(
+    tools = MCPToolset(
         connection_params=StdioServerParameters(
             command="uvx",
             args=["awslabs.core-mcp-server@latest"],
@@ -29,12 +29,12 @@ async def get_aws_core_mcp():
         instruction="AWS Related queries.",
         tools=tools,
     )
-    return agent, exit_stack
+    return agent, None
 
 
 async def get_aws_cost_analysis_mcp():
     """AWS Cost analysis MCP server to"""
-    tools, exit_stack = await MCPToolset.from_server(
+    tools = MCPToolset(
         connection_params=StdioServerParameters(
             command="uvx",
             args=["awslabs.cost-analysis-mcp-server@latest"],
@@ -54,4 +54,4 @@ async def get_aws_cost_analysis_mcp():
         instruction="AWS Cost Analysis related queries.",
         tools=tools,
     )
-    return agent, exit_stack
+    return agent, None
