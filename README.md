@@ -338,44 +338,36 @@ Example app manifest:
 
 ```yaml
 display_information:
-  name: sre-bot
+  name: srebot-dev
 features:
   bot_user:
-    display_name: sre-bot
+    display_name: srebot-dev
     always_online: false
-  slash_commands:
-    - command: /sre-bot:scale
-      url: http://<ngrok-url>.ngrok-free.app/slack/events
-      description: "sre-bot scale "
-      should_escape: false
 oauth_config:
   scopes:
-    user:
-      - reactions:read
     bot:
       - app_mentions:read
-      - channels:join
-      - channels:history
       - chat:write
-      - chat:write.customize
-      - commands
+      - channels:history
       - groups:history
-      - im:write
-      - chat:write.public
-      - reactions:read
-      - mpim:history
       - im:history
+      - mpim:history
 settings:
   event_subscriptions:
-    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+    request_url: https://2539ac96dcea.ngrok-free.app/slack/events
     bot_events:
-      - reaction_added
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
   interactivity:
     is_enabled: true
-    request_url: http://<ngrok-url>.ngrok-free.app/slack/events
+    request_url: https://2539ac96dcea.ngrok-free.app/slack/events
   org_deploy_enabled: false
   socket_mode_enabled: false
   token_rotation_enabled: false
+
 
 
 ```
