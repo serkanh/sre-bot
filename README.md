@@ -55,9 +55,9 @@ docker compose ps
 
 ### 4. Access the Interface
 
-- **Web Interface**: http://localhost:8000
-- **API Server**: http://localhost:8001
-- **Health Check**: http://localhost:8000/health
+- **Web Interface**: <http://localhost:8000>
+- **API Server**: <http://localhost:8001>
+- **Health Check**: <http://localhost:8000/health>
 
 ## 🏗️ Architecture
 
@@ -87,6 +87,7 @@ agents/sre_agent/
 ## 🛠️ Features
 
 ### AWS Cost Analysis
+
 - Retrieve and analyze AWS cost data for specific time periods
 - Filter costs by services, tags, or accounts
 - Calculate cost trends over time
@@ -96,6 +97,7 @@ agents/sre_agent/
 - Generate cost optimization recommendations
 
 ### Kubernetes Operations
+
 - List and manage resources (Namespaces, Deployments, Pods, Services)
 - Get detailed resource information
 - Scale deployments
@@ -104,6 +106,7 @@ agents/sre_agent/
 - Fetch cluster events
 
 ### Operational Excellence
+
 - Infrastructure monitoring and troubleshooting
 - Operational best practices and recommendations
 - Performance optimization guidance
@@ -196,19 +199,22 @@ curl -X POST http://localhost:8001/run \
 
 1. **Configure Slack App** (see detailed instructions below)
 2. **Set environment variables** in `slack_bot/.env`:
+
    ```bash
    SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
    SLACK_SIGNING_SECRET=your-slack-signing-secret
    SLACK_APP_TOKEN=xapp-your-slack-app-token
    ```
+
 3. **Start the Slack bot**:
+
    ```bash
    docker compose up -d slack-bot
    ```
 
 ### Creating the Slack App
 
-1. Go to https://api.slack.com/apps and click "Create New App"
+1. Go to <https://api.slack.com/apps> and click "Create New App"
 2. Name it and choose a workspace
 3. **Add Bot Token Scopes**:
    - `app_mentions:read` - View messages that mention the bot
@@ -290,12 +296,14 @@ SRE_AGENT_API_URL=http://sre-bot-api:8001
 ### Common Issues
 
 1. **Service Communication Issues**:
+
    ```bash
    docker compose ps                    # Check if all containers are running
    docker compose logs [service-name]  # Check specific service logs
    ```
 
 2. **Database Connection Issues**:
+
    ```bash
    docker compose logs postgres         # Check PostgreSQL logs
    ```
@@ -351,6 +359,7 @@ curl -X POST http://localhost:8001/run \
 ## 📚 Available Tools and Functions
 
 ### AWS Cost Analysis Tools
+
 - `get_cost_for_period` - Get costs for specific date ranges
 - `get_monthly_cost` - Monthly cost summaries
 - `get_cost_trend` - Cost trend analysis
@@ -358,24 +367,18 @@ curl -X POST http://localhost:8001/run \
 - `get_cost_by_tag` - Tag-based cost analysis
 - `get_most_expensive_account` - Identify highest-cost accounts
 
-### Kubernetes Operations
-- `list_namespaces` - List all namespaces
-- `list_deployments_*` - Deployment management
-- `list_pods_*` - Pod information and logs
-- `scale_deployment` - Scale deployments up/down
-- `get_resource_health` - Resource health monitoring
-- `get_events` - Cluster event monitoring
-
 ## 🤝 Contributing
 
 1. Follow the established code structure and patterns
 2. Use shared utilities from `agents/sre_agent/utils.py`
 3. Run code quality checks before committing:
+
    ```bash
    ruff check . --fix
    ruff format .
    pre-commit run --all-files
    ```
+
 4. Test your changes with Docker Compose
 5. Update documentation as needed
 
