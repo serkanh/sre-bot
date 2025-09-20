@@ -52,12 +52,9 @@ adk web --session_service_uri=postgresql://postgres:password@localhost:5432/sreb
 
 **For API Server Development:**
 ```bash
-# Use custom serve.py for API development with health checks
+# Use custom serve.py for API-only development with health checks
 cd agents/sre_agent
 python serve.py
-
-# Disable UI for API-only mode
-ADK_UI_ENABLED=false PORT=8000 python serve.py
 ```
 
 ## Architecture
@@ -242,7 +239,7 @@ AWS capabilities through MCP agents:
 
 **Production/Containerized Setup:**
 - **sre-bot-web**: Web interface using `adk web` with built-in UI (for testing)
-- **sre-bot-api**: API server using custom `serve.py` (for Slack app integration)
+- **sre-bot-api**: API-only server using custom `serve.py` (for Slack app integration)
 - **slack-bot**: FastAPI Slack integration communicates with sre-bot-api
 - **postgres**: Session data persistence
 
@@ -261,14 +258,13 @@ The custom `serve.py` provides production-ready API server with:
 - Optimized for API-only usage (no UI overhead)
 
 **Environment Variables:**
-- `ADK_UI_ENABLED`: false (API-only mode)
 - `PORT`: Server port (default: 8000)
 - Database: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 
 ### Development Workflow:
 - **Local Bot Testing**: Use `adk web` for rapid development with built-in UI
-- **API Development**: Use `serve.py` for API server features and health checks
-- **Production**: Slack app talks to containerized `serve.py` API
+- **API Development**: Use `serve.py` for API-only server features and health checks
+- **Production**: Slack app talks to containerized `serve.py` API-only server
 
 Mounts `~/.kube` and `~/.aws` for credential access.
 
