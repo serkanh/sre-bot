@@ -4,8 +4,6 @@ A powerful Site Reliability Engineering (SRE) assistant built with Google's Agen
 
 ![Cost Reporting Demo](https://github.com/serkanh/static-files/blob/main/gifs/cost-reporting-demo.gif?raw=true)
 
-![Kubernetes Demo](https://github.com/serkanh/static-files/blob/main/gifs/eks-cluster-demo.gif?raw=true)
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -61,28 +59,19 @@ docker compose ps
 
 ## 🏗️ Architecture
 
-### Clean Modular Design
-
-The SRE bot follows an ultra-clean, modular architecture:
+The SRE bot follows a modular architecture with specialized sub-agents:
 
 ```
 agents/sre_agent/
-├── agent.py              # Main SRE agent (50 lines - ultra-clean!)
+├── agent.py              # Main SRE agent orchestrator
 ├── serve.py              # FastAPI server with health checks
-├── utils.py              # Shared utilities (logging, file loading)
+├── utils.py              # Shared utilities
 └── sub_agents/
-    └── aws_cost/         # Self-contained AWS cost analysis
-        ├── agent.py      # AWS cost agent configuration
-        ├── tools/        # AWS cost analysis tools
-        └── prompts/      # Agent-specific instructions
+    └── aws_cost/         # AWS cost analysis module
+        ├── agent.py      # Agent configuration
+        ├── tools/        # Cost analysis tools
+        └── prompts/      # Agent instructions
 ```
-
-### Multi-Agent System
-
-- **Main SRE Agent**: Orchestrates and delegates to specialized sub-agents
-- **AWS Cost Agent**: Dedicated AWS cost analysis and optimization
-- **Environment-Driven**: Model selection via `GOOGLE_AI_MODEL` environment variable
-- **Proper ADK Patterns**: Follows Google ADK best practices for sub-agent hierarchies
 
 ## 🛠️ Features
 
@@ -95,15 +84,6 @@ agents/sre_agent/
 - Identify the most expensive AWS accounts
 - Compare costs across different time periods
 - Generate cost optimization recommendations
-
-### Kubernetes Operations
-
-- List and manage resources (Namespaces, Deployments, Pods, Services)
-- Get detailed resource information
-- Scale deployments
-- Retrieve pod logs
-- Monitor resource health
-- Fetch cluster events
 
 ### Operational Excellence
 
@@ -322,38 +302,6 @@ curl http://localhost:8000/health
 # Kubernetes readiness/liveness probes
 curl http://localhost:8000/health/readiness
 curl http://localhost:8000/health/liveness
-```
-
-## 🧪 Testing
-
-### Manual Testing
-
-```bash
-# Test AWS cost functionality (requires AWS credentials)
-curl -X POST http://localhost:8001/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "app_name": "sre_agent",
-    "user_id": "test_user",
-    "session_id": "test_session",
-    "new_message": {
-      "role": "user",
-      "parts": [{"text": "What was my AWS cost last month?"}]
-    }
-  }'
-
-# Test Kubernetes functionality (requires kubectl access)
-curl -X POST http://localhost:8001/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "app_name": "sre_agent",
-    "user_id": "test_user",
-    "session_id": "test_session",
-    "new_message": {
-      "role": "user",
-      "parts": [{"text": "List all pods in the default namespace"}]
-    }
-  }'
 ```
 
 ## 📚 Available Tools and Functions
