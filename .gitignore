@@ -150,4 +150,5 @@ Thumbs.db
 # Secrets
 *.key
 *.pem
-secrets.yaml 
+secrets.yaml
+.mcp.json
