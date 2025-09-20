@@ -32,32 +32,32 @@ services:
     depends_on:
       - postgres
 
-  # sre-bot-api:
-  #   build:
-  #     context: .
-  #     dockerfile: agents/sre_agent/Dockerfile-agent
-  #   image: sre-bot:latest
-  #   container_name: sre-bot-api
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8001:8000"  # Expose the API
-  #   environment:
-  #     - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-  #     - DB_HOST=postgres
-  #     - DB_PORT=5432
-  #     - DB_NAME=srebot
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-  #     - LOG_LEVEL=DEBUG
-  #     - ADK_UI_ENABLED=false
-  #     - PORT=8000
-  #   volumes:
-  #     - ${HOME}/.kube:/root/.kube:ro
-  #     - ${HOME}/.aws:/root/.aws:ro
-  #     - ./agents:/app/  # Mount agents directory including sub_agents modular structure
-  #   command: ["python", "agents/sre_agent/serve.py"]
-  #   depends_on:
-  #     - postgres
+  sre-bot-api:
+    build:
+      context: .
+      dockerfile: agents/sre_agent/Dockerfile-agent
+    image: sre-bot:latest
+    container_name: sre-bot-api
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # Expose the API
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=srebot
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - LOG_LEVEL=DEBUG
+      - ADK_UI_ENABLED=false
+      - PORT=8000
+    volumes:
+      - ${HOME}/.kube:/root/.kube:ro
+      - ${HOME}/.aws:/root/.aws:ro
+      - ./agents:/app/  # Mount agents directory including sub_agents modular structure
+    command: ["python", "/app/sre_agent/serve.py"]
+    depends_on:
+      - postgres
 
   # slack-bot:
   #   build:
