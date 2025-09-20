@@ -1,11 +1,8 @@
-kubernetes>=28.1.0
-python-dateutil>=2.8.2 
-google-adk 
+python-dateutil==2.9.0.post0
+google-adk==1.14.1
 # Required for proprietary models
-litellm>=1.63.11
+litellm==1.77.1
 # Required for Bedrock models
-boto3==1.38.7
-# Required for MCP
-uv==0.7.2
+boto3==1.40.35
 # Required for PostgreSQL database connection
-psycopg2-binary>=2.9.9
+psycopg2-binary==2.9.9

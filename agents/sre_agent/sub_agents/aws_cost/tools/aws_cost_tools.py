@@ -4,16 +4,42 @@ from datetime import datetime, timedelta, date
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import calendar
-import logging
+from botocore.exceptions import NoCredentialsError, ProfileNotFound
+from ....utils import get_logger
 
-# Initialize the Cost Explorer client
-cost_explorer = boto3.client("ce")
+# Global variable to store the client once initialized
+_cost_explorer = None
 
 # Thread pool for running blocking boto3 operations
 _thread_pool = ThreadPoolExecutor()
 
-# Initialize a logger
-logger = logging.getLogger(__name__)
+# Initialize a logger using shared utility
+logger = get_logger(__name__)
+
+
+def _get_cost_explorer_client():
+    """
+    Get the Cost Explorer client, creating it lazily when first needed.
+
+    Returns:
+        boto3.client: Cost Explorer client
+
+    Raises:
+        Exception: If AWS credentials are not available or invalid
+    """
+    global _cost_explorer
+    if _cost_explorer is None:
+        try:
+            _cost_explorer = boto3.client("ce")
+        except (NoCredentialsError, ProfileNotFound) as e:
+            logger.error(f"AWS credentials not configured: {e}")
+            raise Exception(
+                f"AWS credentials not available. Please configure AWS credentials before using cost analysis features: {e}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to create Cost Explorer client: {e}")
+            raise Exception(f"Failed to initialize AWS Cost Explorer client: {e}")
+    return _cost_explorer
 
 
 async def _run_in_executor(func, *args, **kwargs):
@@ -99,6 +125,7 @@ async def get_cost_for_period(
         if filter_expression:
             params["Filter"] = filter_expression
 
+        cost_explorer = _get_cost_explorer_client()
         response = await _run_in_executor(cost_explorer.get_cost_and_usage, **params)
 
         return {

@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -8,10 +8,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Install system dependencies
+# Install system dependencies including build tools for Rust packages and PostgreSQL
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
+    gcc \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (needed for fastuuid and other Rust-based Python packages)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # --- Temporary Fix for GPG Errors ---
 # This section attempts to fix potential GPG key issues with apt.
@@ -28,11 +38,15 @@ RUN apt-get update --allow-insecure-repositories && \
 # Copy requirements file
 COPY ./agents/sre_agent/requirements.txt requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install Python dependencies (prefer binary wheels)
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Copy project files
+# Copy project files - ensure all sub_agents are included
 COPY . .
+
+# Verify the sub_agents structure is properly copied
+RUN ls -la /app/agents/sre_agent/sub_agents/ || echo "sub_agents directory not found"
 
 # # Create a non-root user to run the application
 # RUN groupadd -r sre && useradd -r -g sre sre
