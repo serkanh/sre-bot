@@ -77,15 +77,13 @@ class TestAWSCoreToolsIntegration:
             ) as mock_executor:
                 mock_executor.return_value = mock_response
 
-                result = await get_caller_identity(role_name="test-role")
+                result = await get_caller_identity(role_name=None)
 
                 assert result["status"] == "success"
                 assert result["account"] == "987654321098"
-                assert result["role_name"] == "test-role"
+                assert result["role_name"] == "default"
 
-                mock_service.get_client.assert_called_once_with(
-                    "sts", role_name="test-role"
-                )
+                mock_service.get_client.assert_called_once_with("sts", role_name=None)
 
     @pytest.mark.asyncio
     async def test_list_s3_buckets_success(self):
@@ -111,16 +109,14 @@ class TestAWSCoreToolsIntegration:
             ) as mock_executor:
                 mock_executor.return_value = mock_response
 
-                result = await list_s3_buckets(role_name="test-role")
+                result = await list_s3_buckets(role_name=None)
 
                 assert result["status"] == "success"
                 assert result["count"] == 2
                 assert len(result["buckets"]) == 2
                 assert result["buckets"][0]["name"] == "bucket1"
 
-                mock_service.get_client.assert_called_once_with(
-                    "s3", role_name="test-role"
-                )
+                mock_service.get_client.assert_called_once_with("s3", role_name=None)
 
     @pytest.mark.asyncio
     async def test_list_ec2_instances_with_filters(self):
@@ -160,7 +156,7 @@ class TestAWSCoreToolsIntegration:
                 mock_executor.return_value = mock_response
 
                 result = await list_ec2_instances(
-                    role_name="test-role",
+                    role_name=None,
                     region="us-west-2",
                     instance_states=["running"],
                 )
@@ -172,7 +168,7 @@ class TestAWSCoreToolsIntegration:
                 assert result["instances"][0]["name"] == "test-instance"
 
                 mock_service.get_client.assert_called_once_with(
-                    "ec2", role_name="test-role", region="us-west-2"
+                    "ec2", role_name=None, region="us-west-2"
                 )
 
     @pytest.mark.asyncio
@@ -237,10 +233,10 @@ class TestAWSCoreToolsIntegration:
                 "instances": [{"engine": "mysql"}, {"engine": "postgres"}],
             }
 
-            result = await get_account_summary(role_name="test-role")
+            result = await get_account_summary(role_name=None)
 
             assert result["status"] == "success"
-            assert result["role_name"] == "test-role"
+            assert result["role_name"] == "default"
             assert "summary" in result
             assert result["summary"]["identity"]["account_id"] == "123456789012"
             assert result["summary"]["s3"]["bucket_count"] == 5
@@ -272,9 +268,9 @@ class TestAWSCoreToolsIntegration:
             mock_s3.return_value = {"status": "success", "count": 3}
             mock_ec2.return_value = {"status": "error", "message": "Access denied"}
 
-            result = await test_aws_connectivity(role_name="test-role")
+            result = await test_aws_connectivity(role_name=None)
 
-            assert result["role_name"] == "test-role"
+            assert result["role_name"] == "default"
             assert "tests" in result
             assert result["tests"]["sts"]["status"] == "success"
             assert result["tests"]["s3"]["status"] == "success"
@@ -309,7 +305,7 @@ class TestAWSCoreToolsIntegration:
             ) as mock_executor:
                 mock_executor.return_value = mock_response
 
-                result = await get_aws_regions(role_name="test-role", service="ec2")
+                result = await get_aws_regions(role_name=None, service="ec2")
 
                 assert result["status"] == "success"
                 assert result["count"] == 3
@@ -317,9 +313,7 @@ class TestAWSCoreToolsIntegration:
                 assert "us-west-2" in result["regions"]
                 assert result["service"] == "ec2"
 
-                mock_service.get_client.assert_called_once_with(
-                    "ec2", role_name="test-role"
-                )
+                mock_service.get_client.assert_called_once_with("ec2", role_name=None)
 
 
 class TestToolsWithoutAuthService:

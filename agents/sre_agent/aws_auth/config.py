@@ -8,7 +8,7 @@ and validation for the AWS authentication service.
 import os
 import json
 from typing import Dict, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from ..utils import get_logger
 
 logger = get_logger(__name__)
@@ -29,7 +29,8 @@ class RoleConfig(BaseModel):
         None, description="External ID for third-party access"
     )
 
-    @validator("role_arn")
+    @field_validator("role_arn")
+    @classmethod
     def validate_role_arn(cls, v):
         """Validate that role_arn follows proper ARN format."""
         if not v.startswith("arn:aws:iam::"):
@@ -40,14 +41,16 @@ class RoleConfig(BaseModel):
             raise ValueError("role_arn must contain :role/ and specify a role name")
         return v
 
-    @validator("account_id")
+    @field_validator("account_id")
+    @classmethod
     def validate_account_id(cls, v):
         """Validate that account_id is a 12-digit string."""
         if not v.isdigit() or len(v) != 12:
             raise ValueError("account_id must be a 12-digit string")
         return v
 
-    @validator("role_session_name")
+    @field_validator("role_session_name")
+    @classmethod
     def validate_session_name(cls, v):
         """Validate session name follows AWS requirements."""
         import re
