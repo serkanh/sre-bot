@@ -25,7 +25,6 @@ services:
       - ADK_UI_ENABLED=true
       - PORT=8000
     volumes:
-      - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/  # Mount agents directory including sub_agents modular structure
     command: ["adk", "web", "--session_service_uri=postgresql://postgres:postgres@postgres:5432/srebot","--host=0.0.0.0"]
@@ -52,7 +51,6 @@ services:
       - ADK_UI_ENABLED=false
       - PORT=8000
     volumes:
-      - ${HOME}/.kube:/root/.kube:ro
       - ${HOME}/.aws:/root/.aws:ro
       - ./agents:/app/  # Mount agents directory including sub_agents modular structure
     command: ["python", "/app/sre_agent/serve.py"]

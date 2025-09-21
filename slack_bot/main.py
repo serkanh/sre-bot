@@ -174,7 +174,7 @@ async def send_message_to_api(session: ConversationSession, message: str) -> str
     async with aiohttp.ClientSession() as client:
         try:
             # Use the /run endpoint which we know works from the logs
-            url = f"http://sre-bot-api:8000/run"
+            url = "http://sre-bot-api:8000/run"
             payload = {
                 "app_name": "sre_agent",
                 "user_id": session.user_id,

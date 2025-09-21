@@ -7,18 +7,16 @@ ensuring proper role-based access and error handling.
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools import (
     get_caller_identity,
     list_s3_buckets,
     list_ec2_instances,
-    list_rds_instances,
     get_aws_regions,
     get_account_summary,
     test_aws_connectivity,
 )
-from agents.sre_agent.aws_auth import AWSAuthService, AWSAuthConfig, RoleConfig
 
 
 class TestAWSCoreToolsIntegration:
@@ -27,7 +25,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_get_caller_identity_default_credentials(self):
         """Test get_caller_identity with default credentials."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -57,7 +57,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_get_caller_identity_with_role(self):
         """Test get_caller_identity with assumed role."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -88,7 +90,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_list_s3_buckets_success(self):
         """Test list_s3_buckets with successful response."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -121,7 +125,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_list_ec2_instances_with_filters(self):
         """Test list_ec2_instances with state filters."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -172,7 +178,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_error_handling(self):
         """Test error handling in AWS core tools."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -279,7 +287,9 @@ class TestAWSCoreToolsIntegration:
     @pytest.mark.asyncio
     async def test_aws_regions_functionality(self):
         """Test get_aws_regions with different services."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 
@@ -318,7 +328,9 @@ class TestToolsWithoutAuthService:
     @pytest.mark.asyncio
     async def test_fallback_to_default_credentials(self):
         """Test that tools work with default credentials when no role is specified."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
+        with patch(
+            "agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools.get_auth_service"
+        ) as mock_get_service:
             mock_service = Mock()
             mock_get_service.return_value = mock_service
 

@@ -495,14 +495,4 @@ agents/sre_agent/sub_agents/my_agent/
     └── system_prompt.md     # Agent instructions
 ```
 
-### Code Quality Checks
-
-Always run before committing:
-
-```bash
-ruff check . --fix
-ruff format .
-pre-commit run --all-files
-```
-
 - 'use docker compose instead of deprecated docker-compose'

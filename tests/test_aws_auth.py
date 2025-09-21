@@ -6,9 +6,8 @@ error handling, and integration patterns.
 """
 
 import pytest
-import json
 import time
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime, timezone, timedelta
 
 # Import the modules we're testing
@@ -17,10 +16,9 @@ from agents.sre_agent.aws_auth import (
     AWSAuthConfig,
     RoleConfig,
     AWSCredentials,
-    get_auth_service,
     get_authenticated_client,
     create_client,
-    test_auth,
+    test_auth as auth_test,
     configure_auth,
     create_role_config,
 )
@@ -28,10 +26,8 @@ from agents.sre_agent.aws_auth.exceptions import (
     AWSAuthError,
     AuthenticationError,
     ConfigurationError,
-    CredentialExpiredError,
     RoleNotFoundError,
     AssumeRoleError,
-    ClientCreationError,
     create_auth_error_from_boto_error,
 )
 
@@ -201,7 +197,7 @@ class TestAWSAuthService:
         auth_service = AWSAuthService(config)
 
         with patch("boto3.client") as mock_client:
-            client = await auth_service.get_client("s3")
+            await auth_service.get_client("s3")
             mock_client.assert_called_once_with("s3", region_name="us-east-1")
 
     @pytest.mark.asyncio
@@ -214,7 +210,7 @@ class TestAWSAuthService:
             mock_session_instance = Mock()
             mock_session.return_value = mock_session_instance
 
-            client = await auth_service.get_client("s3")
+            await auth_service.get_client("s3")
 
             mock_session.assert_called_once_with(profile_name="test-profile")
             mock_session_instance.client.assert_called_once_with(
@@ -397,6 +393,7 @@ class TestConvenienceFunctions:
         """Test get_authenticated_client convenience function."""
         with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
             mock_service = Mock()
+            mock_service.get_client = AsyncMock()
             mock_get_service.return_value = mock_service
 
             await get_authenticated_client("s3", role_name="test")
@@ -423,7 +420,7 @@ class TestConvenienceFunctions:
                 return_value={"status": "success"}
             )
 
-            result = await test_auth("test-role")
+            result = await auth_test("test-role")
 
             mock_service.test_credentials.assert_called_once_with("test-role")
             assert result["status"] == "success"
@@ -528,10 +525,6 @@ class TestBackwardCompatibility:
 
             assert result["current_year"] == 2025
             assert result["current_month"] == 1
-
-
-# Integration test markers
-pytestmark = pytest.mark.asyncio
 
 
 if __name__ == "__main__":
