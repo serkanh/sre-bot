@@ -57,15 +57,29 @@ jobs:
         PYTHONPATH=$PWD pytest tests/ -v -k "not integration" --tb=short --maxfail=3
       continue-on-error: true
 
-    - name: Create test environment file
+    - name: Create test environment files
       run: |
-        cat > .env << EOF
-        POSTGRES_PASSWORD=postgres
-        LOG_LEVEL=INFO
+        # Create agents/.env for CI testing
+        cat > agents/.env << EOF
+        # AI Model API Keys (dummy values for CI)
         GOOGLE_API_KEY=dummy_key_for_testing
         ANTHROPIC_API_KEY=dummy_key_for_testing
+        DB_PASSWORD=postgres
         AWS_PROFILE=default
-        KUBE_CONTEXT=dummy_context
+        AWS_REGION=us-east-1
+        LOG_LEVEL=INFO
+        EOF
+
+        # Create slack_bot/.env for CI testing
+        cat > slack_bot/.env << EOF
+        # Slack App Configuration (dummy values for CI)
+        SLACK_BOT_TOKEN=xoxb-dummy-token-for-ci
+        SLACK_SIGNING_SECRET=dummy-signing-secret
+        SLACK_APP_TOKEN=xapp-dummy-app-token
+        SRE_AGENT_API_TIMEOUT=30
+        SESSION_TIMEOUT_MINUTES=60
+        MAX_ACTIVE_SESSIONS=100
+        HEALTH_CHECK_INTERVAL=300
         EOF
 
     - name: Start PostgreSQL
@@ -164,14 +178,27 @@ jobs:
 
     - name: Set up Docker Compose
       run: |
-        # Create minimal .env file for testing
-        cat > .env << EOF
-        POSTGRES_PASSWORD=postgres
-        LOG_LEVEL=INFO
+        # Create agents/.env for CI testing
+        cat > agents/.env << EOF
+        # AI Model API Keys (dummy values for CI)
         GOOGLE_API_KEY=dummy_key_for_testing
         ANTHROPIC_API_KEY=dummy_key_for_testing
+        DB_PASSWORD=postgres
         AWS_PROFILE=default
-        KUBE_CONTEXT=dummy_context
+        AWS_REGION=us-east-1
+        LOG_LEVEL=INFO
+        EOF
+
+        # Create slack_bot/.env for CI testing
+        cat > slack_bot/.env << EOF
+        # Slack App Configuration (dummy values for CI)
+        SLACK_BOT_TOKEN=xoxb-dummy-token-for-ci
+        SLACK_SIGNING_SECRET=dummy-signing-secret
+        SLACK_APP_TOKEN=xapp-dummy-app-token
+        SRE_AGENT_API_TIMEOUT=30
+        SESSION_TIMEOUT_MINUTES=60
+        MAX_ACTIVE_SESSIONS=100
+        HEALTH_CHECK_INTERVAL=300
         EOF
 
     - name: Start services with Docker Compose

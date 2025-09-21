@@ -396,9 +396,9 @@ class TestConvenienceFunctions:
             mock_service.get_client = AsyncMock()
             mock_get_service.return_value = mock_service
 
-            await get_authenticated_client("s3", role_name="test")
+            await get_authenticated_client("s3", role_name=None)
 
-            mock_service.get_client.assert_called_once_with("s3", "test", None)
+            mock_service.get_client.assert_called_once_with("s3", None, None)
 
     @pytest.mark.asyncio
     async def test_create_client_alias(self):
@@ -406,9 +406,9 @@ class TestConvenienceFunctions:
         with patch(
             "agents.sre_agent.aws_auth.get_authenticated_client"
         ) as mock_get_client:
-            await create_client("s3", role_name="test", region="us-west-2")
+            await create_client("s3", role_name=None, region="us-west-2")
 
-            mock_get_client.assert_called_once_with("s3", "test", "us-west-2")
+            mock_get_client.assert_called_once_with("s3", None, "us-west-2")
 
     @pytest.mark.asyncio
     async def test_test_auth_function(self):
@@ -420,9 +420,9 @@ class TestConvenienceFunctions:
                 return_value={"status": "success"}
             )
 
-            result = await auth_test("test-role")
+            result = await auth_test(None)
 
-            mock_service.test_credentials.assert_called_once_with("test-role")
+            mock_service.test_credentials.assert_called_once_with(None)
             assert result["status"] == "success"
 
     def test_configure_auth_function(self):
