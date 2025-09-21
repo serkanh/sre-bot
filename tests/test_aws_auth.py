@@ -16,7 +16,6 @@ from agents.sre_agent.aws_auth import (
     AWSAuthConfig,
     RoleConfig,
     AWSCredentials,
-    get_authenticated_client,
     create_client,
     test_auth as auth_test,
     configure_auth,
