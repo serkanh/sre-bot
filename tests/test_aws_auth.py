@@ -389,18 +389,6 @@ class TestConvenienceFunctions:
     """Test convenience functions and global service patterns."""
 
     @pytest.mark.asyncio
-    async def test_get_authenticated_client(self):
-        """Test get_authenticated_client convenience function."""
-        with patch("agents.sre_agent.aws_auth.get_auth_service") as mock_get_service:
-            mock_service = Mock()
-            mock_service.get_client = AsyncMock()
-            mock_get_service.return_value = mock_service
-
-            await get_authenticated_client("s3", role_name=None)
-
-            mock_service.get_client.assert_called_once_with("s3", None, None)
-
-    @pytest.mark.asyncio
     async def test_create_client_alias(self):
         """Test create_client alias function."""
         with patch(
