@@ -135,18 +135,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    # Docker registry login removed - not needed since we're not pushing
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+    # Docker registry login and metadata extraction removed - not needed since we're not pushing
 
     - name: Build Docker image
       uses: docker/build-push-action@v5
@@ -154,17 +143,17 @@ jobs:
         context: .
         file: ./agents/sre_agent/Dockerfile-agent
         push: false
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        load: true
+        tags: sre-bot:ci-${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
     - name: Test Docker image
       run: |
-        # Use the locally built image with the first tag from metadata
+        # Use the locally built image
         docker run --rm \
           -e PYTHONPATH=/app \
-          $(echo "${{ steps.meta.outputs.tags }}" | head -n1) \
+          sre-bot:ci-${{ github.sha }} \
           python -c "import agents.sre_agent.agent; print('Import successful')"
 
   integration-test:
