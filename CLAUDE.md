@@ -1,14 +1,81 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+### 🔄 Project Awareness & Context
+
+- **Always read `PLANNING.md`** at the start of a new conversation to understand the project's architecture, goals, style, and constraints.
+- **Check `TASK.md`** before starting a new task. If the task isn’t listed, add it with a brief description and today's date.
+- **Use consistent naming conventions, file structure, and architecture patterns** as described in `PLANNING.md`.
+- **Use venv_linux** (the virtual environment) whenever executing Python commands, including for unit tests.
+
+### 🧱 Code Structure & Modularity
+
+- **Never create a file longer than 500 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
+- **Organize code into clearly separated modules**, grouped by feature or responsibility.
+  For agents this looks like:
+  - `agent.py` - Main agent definition and execution logic
+  - `tools.py` - Tool functions used by the agent
+  - `prompts.py` - System prompts
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use clear, consistent imports** (prefer relative imports within packages).
+- **Use python_dotenv and load_env()** for environment variables.
+
+### 🧪 Testing & Reliability
+
+- **Always create Pytest unit tests for new features** (functions, classes, routes, etc).
+- **After updating any logic**, check whether existing unit tests need to be updated. If so, do it.
+- **Tests should live in a `/tests` folder** mirroring the main app structure.
+  - Include at least:
+    - 1 test for expected use
+    - 1 edge case
+    - 1 failure case
+
+### ✅ Task Completion
+
+- **Mark completed tasks in `TASK.md`** immediately after finishing them.
+- Add new sub-tasks or TODOs discovered during development to `TASK.md` under a “Discovered During Work” section.
+
+### 📎 Style & Conventions
+
+- **Use Python** as the primary language.
+- **Follow PEP8**, use type hints, and format with `black`.
+- **Use `pydantic` for data validation**.
+- Use `FastAPI` for APIs and `SQLAlchemy` or `SQLModel` for ORM if applicable.
+- Write **docstrings for every function** using the Google style:
+
+  ```python
+  def example():
+      """
+      Brief summary.
+
+      Args:
+          param1 (type): Description.
+
+      Returns:
+          type: Description.
+      """
+  ```
+
+### 📚 Documentation & Explainability
+
+- **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
+- **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
+- When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
+
+### 🧠 AI Behavior Rules
+
+- **Never assume missing context. Ask questions if uncertain.**
+- **Never hallucinate libraries or functions** – only use known, verified Python packages.
+- **Always confirm file paths and module names** exist before referencing them in code or tests.
+- **Never delete or overwrite existing code** unless explicitly instructed to or if part of a task from `TASK.md`.
 
 ## Project Overview
 
-This is an SRE Assistant Agent built with Google's Agent Development Kit (ADK) for helping Site Reliability Engineers with operational tasks, particularly focused on Kubernetes and AWS interactions. The system includes a web interface, API, and Slack bot integration.
+This is an SRE Assistant Agent built with Google's Agent Development Kit (ADK) for helping Site Reliability Engineers with operational tasks, particularly focused AWS interactions. The system includes a web interface, API, and Slack bot integration.
 
 ## Development Commands
 
 ### Docker (Recommended)
+
 ```bash
 # Build and start all services
 docker-compose build
@@ -27,6 +94,7 @@ docker-compose down
 ```
 
 ### Code Quality
+
 ```bash
 # Run linting and formatting
 ruff check .
@@ -41,6 +109,7 @@ pre-commit run ruff-format
 ### Local Development (Optional)
 
 **For Bot Testing and Development:**
+
 ```bash
 # Install dependencies
 pip install -r agents/sre_agent/requirements.txt
@@ -51,6 +120,7 @@ adk web --session_service_uri=postgresql://postgres:password@localhost:5432/sreb
 ```
 
 **For API Server Development:**
+
 ```bash
 # Use custom serve.py for API-only development with health checks
 cd agents/sre_agent
@@ -62,10 +132,9 @@ python serve.py
 ### Core Components
 
 **agents/sre_agent/**: Main ADK agent implementation
+
 - `serve.py`: FastAPI server with health checks and session management
 - `agent.py`: Clean agent definition and orchestration
-- `kube_agent.py`: Kubernetes operations sub-agent (to be modularized)
-- `aws_mcps.py`: AWS Core and Cost Analysis MCP agents
 - `sub_agents/`: Modular sub-agent implementations
   - `aws_cost/`: AWS cost analysis sub-agent
     - `agent.py`: Agent configuration and initialization
@@ -76,6 +145,7 @@ python serve.py
 - `settings.py`: Configuration settings
 
 **slack_bot/**: Slack integration
+
 - `main.py`: FastAPI-based Slack bot with session management
 - Communicates with SRE agent API for processing queries
 
@@ -84,27 +154,32 @@ python serve.py
 This project follows Google ADK's latest patterns and best practices:
 
 **Agent Configuration**:
+
 - Uses `LlmAgent` (aliased as `Agent`) with declarative Python configuration
 - Each agent has: `name`, `model`, `instruction`, `description`, and `tools`
 - Model-agnostic design supporting Gemini, Claude, GPT-4o, and other models via LiteLlm
 
 **Multi-Agent System (MAS)**:
+
 - Structured parent-child relationships with `sub_agents`
 - Specialized workflow agents (`SequentialAgent`, `ParallelAgent`, `LoopAgent`)
 - Modularity through composition of smaller, specialized agents
 
 **Tool Integration**:
+
 - Tools as Python functions or `BaseTool` classes
 - Custom toolsets like `BigQueryToolset` and `VertexAiSearchTool`
 - `AgentTool` for delegating to other agents
 
 **Session & State Management**:
+
 - `Session` holds conversation history for continuous dialogue
 - `State` acts as scratchpad for data sharing between steps
 - `Memory` provides long-term recall across sessions
 - Callbacks for dynamic state management via `callback_context.state`
 
 **Code Reuse & Duplication Prevention**:
+
 - Before implementing utility functions, check if similar functionality exists in `agents/sre_agent/utils.py`
 - Always prefer using shared utilities over duplicating code across modules
 - When creating commonly-needed functions (like file loading, formatting, etc.), add them to the shared utils module
@@ -112,12 +187,14 @@ This project follows Google ADK's latest patterns and best practices:
 - If you find duplicated code patterns, refactor them into shared utilities immediately
 
 **Logging Standards**:
+
 - **Always use shared logging utilities** from `agents/sre_agent/utils` instead of configuring logging directly
 - **Standard usage**: `from agents.sre_agent.utils import get_logger` then `logger = get_logger(__name__)`
 - **Custom configuration**: Use `setup_logger()` for modules requiring specific log formats or levels
 - **Environment control**: Use `LOG_LEVEL` environment variable (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - **Consistent format**: Shared utilities provide standardized timestamp and module name formatting
 - **Examples**:
+
   ```python
   # Basic logging (recommended for most modules)
   from agents.sre_agent.utils import get_logger
@@ -127,6 +204,7 @@ This project follows Google ADK's latest patterns and best practices:
   from agents.sre_agent.utils import setup_logger
   logger = setup_logger("SERVICE_NAME", format_string="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
   ```
+
 - **Never use**: `logging.basicConfig()` or `logging.getLogger()` directly in new code
 
 ### Slack Bolt Framework Integration
@@ -134,6 +212,7 @@ This project follows Google ADK's latest patterns and best practices:
 Built using Slack Bolt's async patterns:
 
 **AsyncApp Configuration**:
+
 ```python
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.fastapi.async_handler import AsyncSlackRequestHandler
@@ -149,6 +228,7 @@ async def handle_app_mention(body, say):
 ```
 
 **FastAPI Integration**:
+
 - Uses `AsyncSlackRequestHandler` to bridge FastAPI and Bolt
 - Async event handling with `@app.event` decorators
 - Proper `await` usage for all utility functions (`ack()`, `say()`, `respond()`)
@@ -172,65 +252,92 @@ The system uses different session management approaches:
 ### Agent Architecture
 
 The main agent (`agents/sre_agent/agent.py`) orchestrates multiple specialized sub-agents following ADK's MAS patterns:
-- **kubernetes_agent**: `LlmAgent` with Kubernetes tools and operations
+
 - **aws_core_mcp_agent**: General AWS service interactions via MCP
 - **aws_cost_analysis_mcp_agent**: AWS cost querying and analysis
 - **aws_cost_agent**: Specialized cost analysis sub-agent with dedicated tools
 
 ## Environment Configuration
 
-The SRE Bot uses service-specific environment files for better organization and security isolation:
+The SRE Bot uses a clean separation between static configuration and secrets:
+
+### Configuration Architecture
+
+**Static Configuration (docker-compose.yml):**
+
+- Database connection details (host, port, database name)
+- Container ports and networking
+- Python environment settings
+- Service dependencies
+
+**Secrets & User-Specific (.env files):**
+
+- API keys and tokens
+- AWS profiles and credentials
+- User-specific tool configurations
 
 ### Environment Files Structure
-```
-.env.example                    # Main Docker Compose configuration
-agents/.env.example            # SRE Agent specific configuration
-slack_bot/.env.example         # Slack Bot specific configuration
+
+```text
+agents/.env.example            # SRE Agent secrets and user configs
+slack_bot/.env.example         # Slack Bot secrets and behavioral configs
 ```
 
-### Main Configuration (.env.example)
-- `POSTGRES_PASSWORD`: Database password
-- `LOG_LEVEL`: Global logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+### SRE Agent Configuration (agents/.env)
+
+**Required Secrets:**
+
 - `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`: AI model access keys
-- `AWS_PROFILE`, `KUBE_CONTEXT`: Infrastructure tool configurations
+- `DB_PASSWORD`: Database password (matches docker-compose)
 
-### SRE Agent Configuration (agents/.env.example)
-- AI model API keys with service isolation
-- Database connection settings
-- Custom logging formats for agent operations
-- Server configuration (PORT, ADK_UI_ENABLED)
+**User-Specific:**
 
-### Slack Bot Configuration (slack_bot/.env.example)
-- Slack app tokens and secrets
-- SRE Agent API endpoint configuration
-- Session management settings
-- Health check intervals
+- `AWS_PROFILE`, `AWS_REGION`: Your AWS configuration
+- `KUBE_CONTEXT`: Your Kubernetes context
+
+**Optional Overrides:**
+
+- `LOG_LEVEL`: Development logging level
+- `GOOGLE_AI_MODEL`: AI model selection
+
+### Slack Bot Configuration (slack_bot/.env)
+
+**Required Secrets:**
+
+- `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`: Slack app credentials
+
+**Behavioral Settings:**
+
+- `SRE_AGENT_API_TIMEOUT`: API timeout settings
+- `SESSION_TIMEOUT_MINUTES`, `MAX_ACTIVE_SESSIONS`: Session management
 
 ### Setup Instructions
+
 1. Copy each `.env.example` file to `.env` in the same directory
-2. Customize values according to your environment
-3. Use separate credentials for production vs development
+2. Configure **only** the secrets and user-specific values
+3. Static configurations are already set in docker-compose.yml
 4. Never commit actual `.env` files to version control
+
+### Configuration Best Practices
+
+- **Secrets go in .env files** (API keys, tokens, passwords)
+- **Static configs go in docker-compose.yml** (ports, database settings)
+- **No duplication** between docker-compose environment and .env files
+- **Local development defaults** are provided in docker-compose.yml
 
 ## Database
 
 PostgreSQL database for session persistence:
+
 - Host: postgres (in Docker), localhost (local)
 - Database: srebot
 - User: postgres
 - Tables managed by DatabaseSessionService
 
-## Kubernetes Tools
-
-Available via `kubernetes_agent`:
-- Namespace/deployment/pod/service listing and details
-- Resource scaling and log retrieval
-- Cluster events and health monitoring
-- Cross-namespace operations
-
 ## AWS Integration
 
 AWS capabilities through MCP agents:
+
 - Core AWS service interactions
 - Cost analysis and reporting
 - Usage optimization insights
@@ -238,30 +345,36 @@ AWS capabilities through MCP agents:
 ## Docker Configuration
 
 **Production/Containerized Setup:**
+
 - **sre-bot-web**: Web interface using `adk web` with built-in UI (for testing)
 - **sre-bot-api**: API-only server using custom `serve.py` (for Slack app integration)
 - **slack-bot**: FastAPI Slack integration communicates with sre-bot-api
 - **postgres**: Session data persistence
 
-### API Server (serve.py) Features:
+### API Server (serve.py) Features
+
 The custom `serve.py` provides production-ready API server with:
 
 **Health Checks for Monitoring:**
+
 - `/health` - General health check with system info
 - `/health/readiness` - Kubernetes readiness probe
 - `/health/liveness` - Kubernetes liveness probe
 
 **Production Features:**
+
 - Request logging middleware for debugging
 - PostgreSQL session management
 - Environment-based configuration
 - Optimized for API-only usage (no UI overhead)
 
 **Environment Variables:**
+
 - `PORT`: Server port (default: 8000)
 - Database: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 
-### Development Workflow:
+### Development Workflow
+
 - **Local Bot Testing**: Use `adk web` for rapid development with built-in UI
 - **API Development**: Use `serve.py` for API-only server features and health checks
 - **Production**: Slack app talks to containerized `serve.py` API-only server
@@ -271,6 +384,7 @@ Mounts `~/.kube` and `~/.aws` for credential access.
 ## Slack Bot Setup
 
 Requires Slack app configuration with:
+
 - Bot scopes: `app_mentions:read`, `chat:write`, `channels:join`, etc.
 - Event subscriptions pointing to ngrok/external URL
 - Environment file at `slack_bot/.env` with tokens
@@ -351,6 +465,7 @@ async def handle_custom_command(ack, body, respond):
 ## Testing API
 
 Create session:
+
 ```bash
 curl -X POST http://localhost:8001/apps/sre_agent/users/u_123/sessions/s_123 \
   -H "Content-Type: application/json" \
@@ -358,6 +473,7 @@ curl -X POST http://localhost:8001/apps/sre_agent/users/u_123/sessions/s_123 \
 ```
 
 Send message:
+
 ```bash
 curl -X POST http://localhost:8001/run \
   -H "Content-Type: application/json" \
@@ -395,6 +511,7 @@ curl -X POST http://localhost:8001/run \
 ### Modular Sub-Agent Structure
 
 Example structure for a new sub-agent:
+
 ```
 agents/sre_agent/sub_agents/my_agent/
 ├── __init__.py              # Exports agent function
@@ -406,12 +523,4 @@ agents/sre_agent/sub_agents/my_agent/
     └── system_prompt.md     # Agent instructions
 ```
 
-### Code Quality Checks
-
-Always run before committing:
-```bash
-ruff check . --fix
-ruff format .
-pre-commit run --all-files
-```
 - 'use docker compose instead of deprecated docker-compose'

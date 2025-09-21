@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Base stage with common dependencies
+FROM python:3.11-slim as base
 
 # Set working directory
 WORKDIR /app
@@ -35,8 +36,9 @@ RUN apt-get update --allow-insecure-repositories && \
 # --- Clean up ---
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
+# Copy requirements files
 COPY ./agents/sre_agent/requirements.txt requirements.txt
+COPY requirements-dev.txt requirements-dev.txt
 
 # Upgrade pip and install Python dependencies (prefer binary wheels)
 RUN pip install --upgrade pip && \
@@ -44,6 +46,19 @@ RUN pip install --upgrade pip && \
 
 # Copy project files - ensure all sub_agents are included
 COPY . .
+
+# Verify the sub_agents structure is properly copied
+RUN ls -la /app/agents/sre_agent/sub_agents/ || echo "sub_agents directory not found"
+
+# Test stage
+FROM base as test
+
+# Install test dependencies
+RUN pip install --no-cache-dir -r requirements-dev.txt && \
+    pip install pytest pytest-asyncio
+
+# Production stage (default)
+FROM base as production
 
 # Verify the sub_agents structure is properly copied
 RUN ls -la /app/agents/sre_agent/sub_agents/ || echo "sub_agents directory not found"
