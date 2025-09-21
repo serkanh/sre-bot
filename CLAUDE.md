@@ -259,43 +259,71 @@ The main agent (`agents/sre_agent/agent.py`) orchestrates multiple specialized s
 
 ## Environment Configuration
 
-The SRE Bot uses service-specific environment files for better organization and security isolation:
+The SRE Bot uses a clean separation between static configuration and secrets:
+
+### Configuration Architecture
+
+**Static Configuration (docker-compose.yml):**
+
+- Database connection details (host, port, database name)
+- Container ports and networking
+- Python environment settings
+- Service dependencies
+
+**Secrets & User-Specific (.env files):**
+
+- API keys and tokens
+- AWS profiles and credentials
+- User-specific tool configurations
 
 ### Environment Files Structure
 
-```
-.env.example                    # Main Docker Compose configuration
-agents/.env.example            # SRE Agent specific configuration
-slack_bot/.env.example         # Slack Bot specific configuration
+```text
+agents/.env.example            # SRE Agent secrets and user configs
+slack_bot/.env.example         # Slack Bot secrets and behavioral configs
 ```
 
-### Main Configuration (.env.example)
+### SRE Agent Configuration (agents/.env)
 
-- `POSTGRES_PASSWORD`: Database password
-- `LOG_LEVEL`: Global logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+**Required Secrets:**
+
 - `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`: AI model access keys
-- `AWS_PROFILE`, `KUBE_CONTEXT`: Infrastructure tool configurations
+- `DB_PASSWORD`: Database password (matches docker-compose)
 
-### SRE Agent Configuration (agents/.env.example)
+**User-Specific:**
 
-- AI model API keys with service isolation
-- Database connection settings
-- Custom logging formats for agent operations
-- Server configuration (PORT, ADK_UI_ENABLED)
+- `AWS_PROFILE`, `AWS_REGION`: Your AWS configuration
+- `KUBE_CONTEXT`: Your Kubernetes context
 
-### Slack Bot Configuration (slack_bot/.env.example)
+**Optional Overrides:**
 
-- Slack app tokens and secrets
-- SRE Agent API endpoint configuration
-- Session management settings
-- Health check intervals
+- `LOG_LEVEL`: Development logging level
+- `GOOGLE_AI_MODEL`: AI model selection
+
+### Slack Bot Configuration (slack_bot/.env)
+
+**Required Secrets:**
+
+- `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APP_TOKEN`: Slack app credentials
+
+**Behavioral Settings:**
+
+- `SRE_AGENT_API_TIMEOUT`: API timeout settings
+- `SESSION_TIMEOUT_MINUTES`, `MAX_ACTIVE_SESSIONS`: Session management
 
 ### Setup Instructions
 
 1. Copy each `.env.example` file to `.env` in the same directory
-2. Customize values according to your environment
-3. Use separate credentials for production vs development
+2. Configure **only** the secrets and user-specific values
+3. Static configurations are already set in docker-compose.yml
 4. Never commit actual `.env` files to version control
+
+### Configuration Best Practices
+
+- **Secrets go in .env files** (API keys, tokens, passwords)
+- **Static configs go in docker-compose.yml** (ports, database settings)
+- **No duplication** between docker-compose environment and .env files
+- **Local development defaults** are provided in docker-compose.yml
 
 ## Database
 
