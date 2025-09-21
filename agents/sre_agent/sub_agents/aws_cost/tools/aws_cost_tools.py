@@ -1,5 +1,5 @@
 import boto3
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, date
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -9,6 +9,10 @@ from ....utils import get_logger
 
 # Global variable to store the client once initialized
 _cost_explorer = None
+
+# Global variable to store auth service for role-based access (optional)
+_auth_service = None
+_auth_role_name = None
 
 # Thread pool for running blocking boto3 operations
 _thread_pool = ThreadPoolExecutor()
@@ -21,16 +25,30 @@ def _get_cost_explorer_client():
     """
     Get the Cost Explorer client, creating it lazily when first needed.
 
+    Uses auth service if configured, otherwise falls back to default credentials
+    for backward compatibility.
+
     Returns:
         boto3.client: Cost Explorer client
 
     Raises:
         Exception: If AWS credentials are not available or invalid
     """
-    global _cost_explorer
+    global _cost_explorer, _auth_service, _auth_role_name
+
     if _cost_explorer is None:
         try:
-            _cost_explorer = boto3.client("ce")
+            if _auth_service and _auth_role_name:
+                # Use auth service with role-based credentials
+                logger.debug(
+                    f"Creating Cost Explorer client with auth service role: {_auth_role_name}"
+                )
+                # Note: This will be an async call in practice, but we handle it in the calling functions
+                _cost_explorer = None  # Will be created async in calling functions
+            else:
+                # Fallback to default credentials (existing behavior)
+                logger.debug("Creating Cost Explorer client with default credentials")
+                _cost_explorer = boto3.client("ce")
         except (NoCredentialsError, ProfileNotFound) as e:
             logger.error(f"AWS credentials not configured: {e}")
             raise Exception(
@@ -40,6 +58,87 @@ def _get_cost_explorer_client():
             logger.error(f"Failed to create Cost Explorer client: {e}")
             raise Exception(f"Failed to initialize AWS Cost Explorer client: {e}")
     return _cost_explorer
+
+
+async def _get_cost_explorer_client_async():
+    """
+    Get the Cost Explorer client asynchronously, using auth service if configured.
+
+    Returns:
+        boto3.client: Cost Explorer client
+
+    Raises:
+        Exception: If AWS credentials are not available or invalid
+    """
+    global _cost_explorer, _auth_service, _auth_role_name
+
+    if _cost_explorer is None:
+        try:
+            if _auth_service and _auth_role_name:
+                # Use auth service with role-based credentials
+                logger.debug(
+                    f"Creating Cost Explorer client with auth service role: {_auth_role_name}"
+                )
+                _cost_explorer = await _auth_service.get_client(
+                    "ce", role_name=_auth_role_name
+                )
+            else:
+                # Fallback to default credentials (existing behavior)
+                logger.debug("Creating Cost Explorer client with default credentials")
+                _cost_explorer = boto3.client("ce")
+        except (NoCredentialsError, ProfileNotFound) as e:
+            logger.error(f"AWS credentials not configured: {e}")
+            raise Exception(
+                f"AWS credentials not available. Please configure AWS credentials before using cost analysis features: {e}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to create Cost Explorer client: {e}")
+            raise Exception(f"Failed to initialize AWS Cost Explorer client: {e}")
+    return _cost_explorer
+
+
+def configure_aws_auth(auth_service=None, role_name: Optional[str] = None):
+    """
+    Configure AWS authentication for cost analysis tools.
+
+    Args:
+        auth_service: Optional AWS auth service instance
+        role_name: Optional role name to use for authentication
+
+    Note:
+        If auth_service is None, falls back to default AWS credentials.
+        This maintains backward compatibility with existing usage.
+    """
+    global _auth_service, _auth_role_name, _cost_explorer
+
+    _auth_service = auth_service
+    _auth_role_name = role_name
+
+    # Clear existing client to force recreation with new auth
+    _cost_explorer = None
+
+    if auth_service and role_name:
+        logger.info(
+            f"AWS Cost tools configured to use auth service with role: {role_name}"
+        )
+    else:
+        logger.info("AWS Cost tools configured to use default credentials")
+
+
+def clear_aws_auth():
+    """
+    Clear AWS authentication configuration and revert to default credentials.
+
+    This function maintains backward compatibility by clearing any configured
+    auth service and reverting to the original default credential behavior.
+    """
+    global _auth_service, _auth_role_name, _cost_explorer
+
+    _auth_service = None
+    _auth_role_name = None
+    _cost_explorer = None  # Force recreation with default credentials
+
+    logger.info("AWS Cost tools reverted to default credentials")
 
 
 async def _run_in_executor(func, *args, **kwargs):
@@ -125,7 +224,11 @@ async def get_cost_for_period(
         if filter_expression:
             params["Filter"] = filter_expression
 
-        cost_explorer = _get_cost_explorer_client()
+        # Use async client if auth service is configured, otherwise use sync client
+        if _auth_service and _auth_role_name:
+            cost_explorer = await _get_cost_explorer_client_async()
+        else:
+            cost_explorer = _get_cost_explorer_client()
         response = await _run_in_executor(cost_explorer.get_cost_and_usage, **params)
 
         return {
@@ -810,4 +913,7 @@ __all__ = [
     "get_current_month_cost",
     "get_previous_month_cost",
     "get_last_n_months_trend",
+    # AWS Authentication configuration functions
+    "configure_aws_auth",
+    "clear_aws_auth",
 ]
