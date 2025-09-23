@@ -1,0 +1,79 @@
+version: 2.1
+
+commands:
+    aws-oidc-setup:
+        description: Setup AWS auth using OIDC token
+        parameters:
+            aws-role-arn:
+                type: string
+        steps:
+            - run:
+                  name: Get short-term credentials
+                  command: |
+                      STS=($(aws sts assume-role-with-web-identity --role-arn << parameters.aws-role-arn >> --role-session-name "${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}" --web-identity-token "${CIRCLE_OIDC_TOKEN}" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text))
+                      echo "export AWS_ACCESS_KEY_ID=${STS[0]}" >> $BASH_ENV
+                      echo "export AWS_SECRET_ACCESS_KEY=${STS[1]}" >> $BASH_ENV
+                      echo "export AWS_SESSION_TOKEN=${STS[2]}" >> $BASH_ENV
+            - run:
+                  name: Verify AWS credentials
+                  command: aws sts get-caller-identity
+
+jobs:
+    build-push-sre-agent:
+        machine:
+            image: ubuntu-2204:current
+        environment:
+            SRE_AGENT_REPO: 812201244513.dkr.ecr.us-west-2.amazonaws.com/sre-bot
+        steps:
+            - checkout
+            - aws-oidc-setup:
+                  aws-role-arn: "arn:aws:iam::812201244513:role/sre-bot-circleci-role"
+            - run:
+                  name: Login to ECR
+                  command: aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 812201244513.dkr.ecr.us-west-2.amazonaws.com
+            - run:
+                  name: Build sre-agent image
+                  command: |
+                      docker build \
+                        --file agents/sre_agent/Dockerfile \
+                        --tag $SRE_AGENT_REPO:$CIRCLE_SHA1 \
+                        --tag $SRE_AGENT_REPO:latest \
+                        .
+            - run:
+                  name: Push sre-agent image
+                  command: |
+                      docker push $SRE_AGENT_REPO:$CIRCLE_SHA1
+                      docker push $SRE_AGENT_REPO:latest
+
+    build-push-slack-bot:
+        machine:
+            image: ubuntu-2204:current
+        environment:
+            SLACK_BOT_REPO: 812201244513.dkr.ecr.us-west-2.amazonaws.com/sre-bot-slack
+        steps:
+            - checkout
+            - aws-oidc-setup:
+                  aws-role-arn: "arn:aws:iam::812201244513:role/sre-bot-circleci-role"
+            - run:
+                  name: Login to ECR
+                  command: aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 812201244513.dkr.ecr.us-west-2.amazonaws.com
+            - run:
+                  name: Build slack-bot image
+                  command: |
+                      docker build \
+                        --file slack_bot/Dockerfile \
+                        --tag $SLACK_BOT_REPO:$CIRCLE_SHA1 \
+                        --tag $SLACK_BOT_REPO:latest \
+                        .
+            - run:
+                  name: Push slack-bot image
+                  command: |
+                      docker push $SLACK_BOT_REPO:$CIRCLE_SHA1
+                      docker push $SLACK_BOT_REPO:latest
+
+workflows:
+    version: 2
+    build-and-deploy:
+        jobs:
+            - build-push-sre-agent
+            - build-push-slack-bot
