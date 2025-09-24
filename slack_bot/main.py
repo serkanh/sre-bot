@@ -1,5 +1,3 @@
-import sys
-import os
 from typing import Any, Dict
 import aiohttp
 import asyncio
@@ -13,9 +11,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from modules.health import healthcheck
 
-# Add the parent directory to sys.path to import utils
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from agents.sre_agent.utils import get_logger
+from utils import get_logger
 
 # Configure logging using shared utility
 logger = get_logger(__name__)
