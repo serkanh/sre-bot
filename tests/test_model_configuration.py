@@ -84,7 +84,8 @@ class TestModelConfiguration:
                 ):
                     model = get_configured_model()
                     assert model == mock_instance
-                    mock_litellm.assert_called_once_with(model=arn)
+                    # LiteLLM requires bedrock/ prefix for Bedrock models
+                    mock_litellm.assert_called_once_with(model=f"bedrock/{arn}")
 
     def test_bedrock_profile_without_aws_credentials_raises_error(self):
         """Test that Bedrock without AWS credentials raises helpful error."""

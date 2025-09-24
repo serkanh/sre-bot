@@ -170,8 +170,11 @@ def get_configured_model():
             )
 
         from google.adk.models.lite_llm import LiteLlm
+        # LiteLLM requires bedrock/ prefix for AWS Bedrock models
+        bedrock_model = f"bedrock/{bedrock_profile}"
         logger.info(f"🚀 Using AWS Bedrock provider with profile: {bedrock_profile}")
-        return LiteLlm(model=bedrock_profile)
+        logger.info(f"✓ LiteLLM model configured as: {bedrock_model}")
+        return LiteLlm(model=bedrock_model)
 
     # No valid configuration found - provide helpful error message
     logger.error("❌ No AI provider configured!")
