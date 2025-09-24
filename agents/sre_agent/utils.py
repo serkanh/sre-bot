@@ -8,6 +8,12 @@ import sys
 from typing import Optional
 
 
+class ModelConfigurationError(Exception):
+    """Raised when model configuration fails."""
+
+    pass
+
+
 def setup_logger(
     name: str,
     level: Optional[str] = None,
@@ -157,3 +163,123 @@ def load_instruction_from_file(file_path: str) -> str:
         error_msg = f"Error loading instruction file {file_path}: {e}"
         logger.error(error_msg)
         return error_msg
+
+
+def get_configured_model():
+    """
+    Determine model configuration based on available API keys.
+    Priority: Google > Anthropic > Bedrock
+    Provides clear error messages for each provider's requirements.
+
+    Returns:
+        Union[str, LiteLlm]: Model configuration object
+
+    Raises:
+        ModelConfigurationError: When no valid provider configuration is found
+
+    Example:
+        >>> from agents.sre_agent.utils import get_configured_model
+        >>> model = get_configured_model()
+    """
+    logger = get_logger(__name__)
+
+    # Check for Google API key first (direct model string)
+    google_key = os.getenv("GOOGLE_API_KEY")
+    if google_key and google_key.strip():
+        model = os.getenv("GOOGLE_AI_MODEL", "gemini-2.0-flash")
+        logger.info(f"🚀 Using Google Gemini provider with model: {model}")
+        logger.info("✓ GOOGLE_API_KEY found and validated")
+        return model
+
+    # Check for Anthropic API key (LiteLlm wrapper)
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    if anthropic_key and anthropic_key.strip():
+        try:
+            from google.adk.models.lite_llm import LiteLlm
+        except ImportError as e:
+            logger.error(f"Failed to import LiteLlm: {e}")
+            raise ModelConfigurationError(
+                "LiteLlm is required for Anthropic Claude. Please ensure google-adk is properly installed."
+            )
+
+        model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
+        logger.info(f"🚀 Using Anthropic Claude provider with model: {model_name}")
+        logger.info("✓ ANTHROPIC_API_KEY found and validated")
+        return LiteLlm(model=model_name)
+
+    # Check for Bedrock profile (LiteLlm wrapper)
+    bedrock_profile = os.getenv("BEDROCK_INFERENCE_PROFILE")
+    if bedrock_profile and bedrock_profile.strip():
+        # Validate AWS credentials are available
+        try:
+            import boto3
+        except ImportError:
+            logger.error("❌ AWS Bedrock configuration error:")
+            logger.error("   - boto3 is required for AWS Bedrock but not installed")
+            logger.error("   - Please install boto3: pip install boto3")
+            raise ModelConfigurationError(
+                "Bedrock requires boto3 library. Please install with: pip install boto3"
+            )
+
+        try:
+            # Test AWS credentials
+            sts = boto3.client("sts")
+            identity = sts.get_caller_identity()
+            logger.info(
+                f"✓ AWS credentials validated for account: {identity['Account']}"
+            )
+        except Exception as e:
+            logger.error("❌ AWS Bedrock configuration error:")
+            logger.error(
+                "   - BEDROCK_INFERENCE_PROFILE is set but AWS credentials are not configured"
+            )
+            logger.error("   - Please configure AWS credentials via:")
+            logger.error(
+                "     • AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables"
+            )
+            logger.error("     • AWS profile via AWS_PROFILE environment variable")
+            logger.error("     • IAM role (if running on AWS)")
+            logger.error(f"   - Error details: {str(e)}")
+            raise ModelConfigurationError(
+                "Bedrock requires valid AWS credentials. "
+                "Please configure AWS access before using Bedrock models."
+            )
+
+        try:
+            from google.adk.models.lite_llm import LiteLlm
+        except ImportError as e:
+            logger.error(f"Failed to import LiteLlm: {e}")
+            raise ModelConfigurationError(
+                "LiteLlm is required for AWS Bedrock. Please ensure google-adk is properly installed."
+            )
+
+        logger.info(f"🚀 Using AWS Bedrock provider with profile: {bedrock_profile}")
+        return LiteLlm(model=bedrock_profile)
+
+    # No valid configuration found - provide helpful error message
+    logger.error("❌ No AI provider configured!")
+    logger.error("")
+    logger.error("Please configure one of the following providers:")
+    logger.error("")
+    logger.error("1. Google Gemini (Recommended for Google Cloud users):")
+    logger.error("   export GOOGLE_API_KEY='your-api-key'")
+    logger.error("   export GOOGLE_AI_MODEL='gemini-2.0-flash'  # optional")
+    logger.error("")
+    logger.error("2. Anthropic Claude (Via LiteLLM):")
+    logger.error("   export ANTHROPIC_API_KEY='your-api-key'")
+    logger.error("   export ANTHROPIC_MODEL='claude-3-5-sonnet-20240620'  # optional")
+    logger.error("")
+    logger.error("3. AWS Bedrock (Requires AWS credentials):")
+    logger.error("   export BEDROCK_INFERENCE_PROFILE='arn:aws:bedrock:...'")
+    logger.error("   export AWS_ACCESS_KEY_ID='your-access-key'")
+    logger.error("   export AWS_SECRET_ACCESS_KEY='your-secret-key'")
+    logger.error("   # OR use AWS_PROFILE for named profiles")
+    logger.error("")
+    logger.error("Priority order: Google > Anthropic > Bedrock")
+    logger.error("See agents/.env.example for complete configuration examples")
+
+    raise ModelConfigurationError(
+        "No AI provider API key found. Please set GOOGLE_API_KEY, "
+        "ANTHROPIC_API_KEY, or BEDROCK_INFERENCE_PROFILE. "
+        "See logs above for detailed configuration instructions."
+    )

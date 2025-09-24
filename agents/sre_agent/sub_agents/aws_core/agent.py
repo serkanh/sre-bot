@@ -8,15 +8,10 @@ using role-based authentication for cross-account access.
 import os
 from google.adk.agents import Agent
 from contextlib import AsyncExitStack
-from ...utils import load_instruction_from_file, get_logger
+from ...utils import load_instruction_from_file, get_logger, get_configured_model
 
 # Configure logging
 logger = get_logger(__name__)
-
-
-def _get_model():
-    """Get the configured model from environment variables."""
-    return os.getenv("GOOGLE_AI_MODEL", "gemini-2.0-flash")
 
 
 def create_aws_core_agent():
@@ -41,7 +36,7 @@ def create_aws_core_agent():
 
         return Agent(
             name="aws_core_agent",
-            model=_get_model(),
+            model=get_configured_model(),
             description="Specialized agent for general AWS infrastructure operations and cross-account management. Handles EC2, S3, RDS discovery, account summaries, and connectivity testing.",
             instruction=load_instruction_from_file(
                 os.path.join(current_dir, "prompts", "aws_core_agent_system_prompt.md")

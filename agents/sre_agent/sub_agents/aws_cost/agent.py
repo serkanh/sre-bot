@@ -5,15 +5,10 @@ AWS Cost Agent - Self-contained AWS cost analysis sub-agent.
 import os
 from google.adk.agents import Agent
 from contextlib import AsyncExitStack
-from ...utils import load_instruction_from_file, get_logger
+from ...utils import load_instruction_from_file, get_logger, get_configured_model
 
 # Configure logging
 logger = get_logger(__name__)
-
-
-def _get_model():
-    """Get the configured model from environment variables."""
-    return os.getenv("GOOGLE_AI_MODEL", "gemini-2.0-flash")
 
 
 def create_aws_cost_agent():
@@ -47,7 +42,7 @@ def create_aws_cost_agent():
 
         return Agent(
             name="aws_cost_agent",
-            model=_get_model(),
+            model=get_configured_model(),
             description="Specialized agent for AWS cost analysis and optimization. Handles cost queries, trends, and budget optimization recommendations.",
             instruction=load_instruction_from_file(
                 os.path.join(current_dir, "prompts", "aws_cost_agent_system_prompt.md")
