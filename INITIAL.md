@@ -1,16 +1,42 @@
 ## FEATURE
 
-We need to setup authentication to accesss single or multiple aws systems so we can run queries. It will be role based access that will can assume a remote role that is pre-created and will be able to assume the role to run aws api queries. This is will be used for other
-agents as well so should be shareable.
+You are an experienced Python developer and you are given a task to implement a feature. We ned to implement a feature where will determine how to initate the agents/agent.py with the proper configuration.
 
 ## EXAMPLES
 
-[Provide and explain examples that you have in the `docs/examples/` folder]
+ If a user is sets env var Google Gemini with `GOOGLE_API_KEY` the initiation should be like this with GOOGLE_AI_MODEL env var that is set default to 'gemini-2.0-flash'
+ ```python
+ 
+ agent = Agent(
+        name="sre_agent",
+        model='gemini-2.0-flash',
+        instruction="""You are an expert Site Reliability Engineer (SRE) assistant specializing in operational tasks,
+        infrastructure management, and cost optimization.
+```
+ 
+If env var is set to Anthropic with `ANTHROPIC_API_KEY` the initiation should be like this with ANTHROPIC_MODEL env var that is set default to 'claude-3-7-sonnet-20240620'
+```
+agent = Agent(
+        name="sre_agent",
+        model=LiteLlm('claude-3-5-sonnet-20240620'),
+        instruction="""You are an expert Site Reliability Engineer (SRE) assistant specializing in operational tasks,
+        infrastructure management, and cost optimization.
+```
+
+if env var is "BEDROCK_INFERENCE_PROFILE" the initiation should be like this:
+
+```python
+agent = Agent(
+        name="sre_agent",
+        model=liteLlm('arn:aws:bedrock:us-west-2:812201244513:inference-profile/us.anthropic.claude-opus-4-1-20250805-v1:0'),
+        instruction="""You are an expert Site Reliability Engineer (SRE) assistant specializing in operational tasks,
+        infrastructure management, and cost optimization.
+```
 
 ## DOCUMENTATION
 
-[List out any documentation (web pages, sources for an MCP server like Crawl4AI RAG, etc.) that will need to be referenced during development]
+https://google.github.io/adk-docs/agents/models/#method-c-service-account-for-production-automation
 
 ## OTHER CONSIDERATIONS
 
-- Should be simple to configure perhaps requiring simply aws role arn and account id.
+

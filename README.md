@@ -9,7 +9,7 @@ A powerful Site Reliability Engineering (SRE) assistant built with Google's Agen
 ### Prerequisites
 
 - Docker and Docker Compose
-- Google API key for Gemini access ([Get one here](https://aistudio.google.com/apikey))
+- AI Provider API key (see [AI Model Configuration](#-ai-model-configuration) below)
 - (Optional) AWS credentials and Kubernetes config for respective features
 
 ### 1. Clone and Setup
@@ -26,14 +26,19 @@ cp slack_bot/.env.example slack_bot/.env
 
 ### 2. Configure Environment
 
-Edit `.env` and `agents/.env` with your settings:
+Edit `agents/.env` with your AI provider credentials (see [AI Model Configuration](#-ai-model-configuration) for details):
 
 ```bash
-# Required: Google API key for Gemini models
+# Option 1: Google Gemini (Recommended)
 GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_AI_MODEL=gemini-2.0-flash  # optional
 
-# AI Model Configuration (default: gemini-2.0-flash)
-GOOGLE_AI_MODEL=gemini-2.0-flash
+# Option 2: Anthropic Claude
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_MODEL=claude-3-5-sonnet-20240620  # optional
+
+# Option 3: AWS Bedrock (requires AWS credentials)
+BEDROCK_INFERENCE_PROFILE=arn:aws:bedrock:us-west-2:812201244513:inference-profile/us.anthropic.claude-opus-4-1-20250805-v1:0
 
 # Optional: AWS and Kubernetes configurations
 AWS_PROFILE=your_aws_profile
@@ -263,6 +268,118 @@ SLACK_SIGNING_SECRET=your-secret
 SRE_AGENT_API_URL=http://sre-bot-api:8001
 ```
 
+## 🤖 AI Model Configuration
+
+The SRE bot supports multiple AI providers with automatic provider detection based on your environment variables. The system checks for API keys in priority order and configures the appropriate model.
+
+### Supported Providers
+
+#### 1. Google Gemini (Recommended)
+
+**Best for**: Google Cloud users, fastest setup, most reliable
+
+```bash
+# Required
+GOOGLE_API_KEY=your_google_api_key_here
+
+# Optional (defaults shown)
+GOOGLE_AI_MODEL=gemini-2.0-flash
+```
+
+**Get API Key**: [Google AI Studio](https://aistudio.google.com/apikey)
+
+#### 2. Anthropic Claude
+
+**Best for**: Advanced reasoning tasks, detailed analysis
+
+```bash
+# Required
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Optional (defaults shown)
+ANTHROPIC_MODEL=claude-3-5-sonnet-20240620
+```
+
+**Get API Key**: [Anthropic Console](https://console.anthropic.com/)
+
+#### 3. AWS Bedrock
+
+**Best for**: AWS-native deployments, enterprise compliance
+
+```bash
+# Required
+BEDROCK_INFERENCE_PROFILE=arn:aws:bedrock:us-west-2:812201244513:inference-profile/us.anthropic.claude-opus-4-1-20250805-v1:0
+
+# AWS credentials also required (one of the following):
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+# OR
+AWS_PROFILE=your_aws_profile
+```
+
+**Setup**: Configure AWS Bedrock access in your AWS account
+
+### Provider Selection Priority
+
+The system automatically selects providers in this order:
+
+1. **Google Gemini** (if `GOOGLE_API_KEY` is set)
+2. **Anthropic Claude** (if `ANTHROPIC_API_KEY` is set)
+3. **AWS Bedrock** (if `BEDROCK_INFERENCE_PROFILE` is set)
+
+### Configuration Examples
+
+#### Minimal Google Setup
+```bash
+# agents/.env
+GOOGLE_API_KEY=AIzaSyD4R5T6Y7U8I9O0P1A2S3D4F5G6H7J8K9L0
+```
+
+#### Anthropic with Custom Model
+```bash
+# agents/.env
+ANTHROPIC_API_KEY=sk-ant-api03-A1B2C3D4E5F6G7H8I9J0
+ANTHROPIC_MODEL=claude-3-opus-20240229
+```
+
+#### Bedrock with Named Profile
+```bash
+# agents/.env
+BEDROCK_INFERENCE_PROFILE=arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.anthropic.claude-3-5-sonnet-20240620-v1:0
+AWS_PROFILE=bedrock-user
+AWS_REGION=us-east-1
+```
+
+### Troubleshooting AI Configuration
+
+#### No Provider Configured
+```
+ERROR: No AI provider configured!
+Please configure one of the following providers...
+```
+**Solution**: Set at least one API key as shown above.
+
+#### AWS Bedrock Credentials Missing
+```
+ERROR: BEDROCK_INFERENCE_PROFILE is set but AWS credentials are not configured
+```
+**Solution**: Configure AWS credentials via environment variables or AWS profiles.
+
+#### Invalid API Key
+```
+ERROR: Authentication failed with provider
+```
+**Solution**: Verify your API key is correct and has necessary permissions.
+
+### Model Recommendations
+
+| Use Case | Recommended Provider | Model | Why |
+|----------|---------------------|--------|------|
+| General SRE Tasks | Google Gemini | `gemini-2.0-flash` | Fast, reliable, good for operations |
+| Complex Analysis | Anthropic Claude | `claude-3-5-sonnet-20240620` | Superior reasoning for complex problems |
+| Enterprise/AWS | AWS Bedrock | `claude-3-opus-*` | Enterprise compliance, AWS integration |
+| Cost-Sensitive | Google Gemini | `gemini-2.0-flash` | Most cost-effective for high-volume usage |
+
 ## 🔒 Security
 
 - Store sensitive credentials in environment variables
@@ -288,10 +405,17 @@ SRE_AGENT_API_URL=http://sre-bot-api:8001
    docker compose logs postgres         # Check PostgreSQL logs
    ```
 
-3. **Model Configuration Issues**:
-   - Verify `GOOGLE_API_KEY` is set correctly
-   - Check `GOOGLE_AI_MODEL` is a valid Gemini model name
-   - Review agent logs for model initialization errors
+3. **AI Model Configuration Issues**:
+
+   ```bash
+   docker compose logs sre-bot-api | grep -E "(ERROR|model|provider)"
+   ```
+
+   **Common errors**:
+   - `No AI provider configured!` → Set at least one API key
+   - `Bedrock requires valid AWS credentials` → Configure AWS access
+   - `Authentication failed` → Verify API key is valid
+   - See [AI Model Configuration](#-ai-model-configuration) for detailed setup
 
 ### Health Checks
 

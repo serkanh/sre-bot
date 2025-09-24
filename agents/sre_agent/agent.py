@@ -4,21 +4,15 @@ SRE Agent - Main agent for Site Reliability Engineering tasks.
 Clean and simple agent definition with sub-agent delegation.
 """
 
-import os
 from google.adk.agents import Agent
 
 # Import sub-agent packages (not internal tools)
 from .sub_agents.aws_cost.agent import create_aws_cost_agent
 from .sub_agents.aws_core.agent import create_aws_core_agent
-from .utils import get_logger
+from .utils import get_logger, get_configured_model
 
 # Configure logging
 logger = get_logger(__name__)
-
-
-def _get_model():
-    """Get the configured model from environment variables."""
-    return os.getenv("GOOGLE_AI_MODEL", "gemini-2.0-flash")
 
 
 def _create_root_agent():
@@ -30,7 +24,7 @@ def _create_root_agent():
     # Create main SRE agent
     return Agent(
         name="sre_agent",
-        model=_get_model(),
+        model=get_configured_model(),
         instruction="""You are an expert Site Reliability Engineer (SRE) assistant specializing in operational tasks,
 infrastructure management, and cost optimization.
 

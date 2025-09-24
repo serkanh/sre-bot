@@ -20,7 +20,7 @@ services:
     env_file:
       - agents/.env  # Secrets and user-specific configs
     volumes:
-      - ${HOME}/.aws:/root/.aws:ro
+      - ${HOME}/.aws:/root/.aws:ro # Mount aws credentials to access AWS Bedrock
       - ./agents:/app/  # Mount agents directory including sub_agents modular structure
     command: ["adk", "web", "--session_service_uri=postgresql://postgres:postgres@postgres:5432/srebot","--host=0.0.0.0"]
     depends_on:
@@ -47,7 +47,7 @@ services:
     env_file:
       - agents/.env  # Secrets and user-specific configs
     volumes:
-      - ${HOME}/.aws:/root/.aws:ro
+      - ${HOME}/.aws:/root/.aws:ro # Mount aws credentials to access AWS Bedrock
       - ./agents:/app/  # Mount agents directory including sub_agents modular structure
     command: ["python", "/app/sre_agent/serve.py"]
     depends_on:
