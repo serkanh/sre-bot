@@ -1,0 +1,51 @@
+services:
+  sre-bot-test:
+    build:
+      context: .
+      dockerfile: agents/sre_agent/Dockerfile-agent
+      target: test
+    image: sre-bot:test
+    container_name: sre-bot-test
+    environment:
+      # Static configuration for CI
+      - PYTHONPATH=/app
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=srebot
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      # CI environment detection
+      - CI=true
+      # Dummy API keys for testing
+      - GOOGLE_API_KEY=dummy_key_for_testing
+      - ANTHROPIC_API_KEY=dummy_key_for_testing
+      # AWS configuration (for CI testing, don't set profile)
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=dummy-access-key-for-testing
+      - AWS_SECRET_ACCESS_KEY=dummy-secret-key-for-testing
+      # Logging
+      - LOG_LEVEL=INFO
+    command: ["pytest", "tests/", "-v", "--tb=short", "--maxfail=5"]
+    depends_on:
+      - postgres
+    networks:
+      - default
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=srebot
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_test_data:
+
+networks:
+  default:
+    name: sre-bot-test_default

@@ -61,63 +61,18 @@ jobs:
         PYTHONPATH=$PWD pytest tests/ -v -k "not integration" --tb=short --maxfail=3
       continue-on-error: true
 
-    - name: Create test environment files
+    - name: Run full test suite with Docker Compose
       run: |
-        # Create agents/.env for CI testing
-        cat > agents/.env << EOF
-        # AI Model API Keys (dummy values for CI)
-        GOOGLE_API_KEY=dummy_key_for_testing
-        ANTHROPIC_API_KEY=dummy_key_for_testing
-        DB_PASSWORD=postgres
-        AWS_PROFILE=default
-        AWS_REGION=us-east-1
-        LOG_LEVEL=INFO
-        EOF
-
-        # Create slack_bot/.env for CI testing
-        cat > slack_bot/.env << EOF
-        # Slack App Configuration (dummy values for CI)
-        SLACK_BOT_TOKEN=xoxb-dummy-token-for-ci
-        SLACK_SIGNING_SECRET=dummy-signing-secret
-        SLACK_APP_TOKEN=xapp-dummy-app-token
-        SRE_AGENT_API_TIMEOUT=30
-        SESSION_TIMEOUT_MINUTES=60
-        MAX_ACTIVE_SESSIONS=100
-        HEALTH_CHECK_INTERVAL=300
-        EOF
-
-    - name: Start PostgreSQL
-      run: |
-        docker compose up -d postgres
-        sleep 10  # Wait for postgres to be ready
-
-    - name: Build test image
-      run: |
-        docker build \
-          --target test \
-          -f ./agents/sre_agent/Dockerfile-agent \
-          -t sre-bot:test \
-          .
-
-    - name: Run full test suite in Docker
-      run: |
-        docker run --rm \
-          --network sre-bot_default \
-          -e PYTHONPATH=/app \
-          -e DB_HOST=postgres \
-          -e DB_PORT=5432 \
-          -e DB_NAME=srebot \
-          -e DB_USER=postgres \
-          -e DB_PASSWORD=postgres \
-          sre-bot:test \
-          pytest tests/ -v --tb=short --maxfail=5
+        # Use dedicated CI docker-compose configuration
+        docker compose -f docker-compose.ci.yml up --build --abort-on-container-exit --exit-code-from sre-bot-test
 
     - name: Show test logs on failure
       if: failure()
       run: |
         echo "=== Test execution failed. Checking container logs ==="
-        docker compose logs postgres || echo "No postgres logs available"
+        docker compose -f docker-compose.ci.yml logs postgres || echo "No postgres logs available"
+        docker compose -f docker-compose.ci.yml logs sre-bot-test || echo "No test logs available"
 
     - name: Clean up test environment
       if: always()
-      run: docker compose down -v
+      run: docker compose -f docker-compose.ci.yml down -v

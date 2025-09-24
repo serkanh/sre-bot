@@ -226,10 +226,6 @@ class TestAWSAuthService:
         config = AWSAuthConfig(roles={"test": role_config})
         auth_service = AWSAuthService(config)
 
-        # Mock STS client and response
-        mock_sts_client = Mock()
-        auth_service._sts_client = mock_sts_client
-
         mock_response = {
             "Credentials": {
                 "AccessKeyId": "test_key",
@@ -239,14 +235,23 @@ class TestAWSAuthService:
             }
         }
 
-        with patch.object(auth_service, "_run_in_executor") as mock_executor:
-            mock_executor.return_value = mock_response
+        # Mock both the STS client creation and the role assumption
+        with patch.object(auth_service, "_get_sts_client") as mock_get_sts:
+            mock_sts_client = Mock()
+            mock_get_sts.return_value = mock_sts_client
 
-            client = await auth_service.get_client("ec2", role_name="test")
+            with patch.object(auth_service, "_run_in_executor") as mock_executor:
+                mock_executor.return_value = mock_response
 
-            # Verify role assumption was called
-            mock_executor.assert_called()
-            assert client is not None
+                # Mock the final boto3.client call for the service client
+                with patch("boto3.client") as mock_boto_client:
+                    mock_boto_client.return_value = Mock()
+
+                    client = await auth_service.get_client("ec2", role_name="test")
+
+                    # Verify role assumption was called
+                    mock_executor.assert_called()
+                    assert client is not None
 
     @pytest.mark.asyncio
     async def test_authentication_error_handling(self):
@@ -292,10 +297,6 @@ class TestAWSAuthService:
         config = AWSAuthConfig(roles={"test": role_config}, enable_caching=True)
         auth_service = AWSAuthService(config)
 
-        # Mock STS client and response
-        mock_sts_client = Mock()
-        auth_service._sts_client = mock_sts_client
-
         mock_response = {
             "Credentials": {
                 "AccessKeyId": "test_key",
@@ -305,18 +306,27 @@ class TestAWSAuthService:
             }
         }
 
-        with patch.object(auth_service, "_run_in_executor") as mock_executor:
-            mock_executor.return_value = mock_response
+        # Mock both the STS client creation and the role assumption
+        with patch.object(auth_service, "_get_sts_client") as mock_get_sts:
+            mock_sts_client = Mock()
+            mock_get_sts.return_value = mock_sts_client
 
-            # First call should cache credentials
-            await auth_service.get_client("s3", role_name="test")
-            assert "test" in auth_service._credential_cache
+            with patch.object(auth_service, "_run_in_executor") as mock_executor:
+                mock_executor.return_value = mock_response
 
-            # Second call should use cached credentials
-            await auth_service.get_client("s3", role_name="test")
+                # Mock the final boto3.client call for the service client
+                with patch("boto3.client") as mock_boto_client:
+                    mock_boto_client.return_value = Mock()
 
-            # _run_in_executor should only be called once (for caching)
-            assert mock_executor.call_count == 1
+                    # First call should cache credentials
+                    await auth_service.get_client("s3", role_name="test")
+                    assert "test" in auth_service._credential_cache
+
+                    # Second call should use cached credentials
+                    await auth_service.get_client("s3", role_name="test")
+
+                    # _run_in_executor should only be called once (for caching)
+                    assert mock_executor.call_count == 1
 
     @pytest.mark.asyncio
     async def test_test_credentials(self):
