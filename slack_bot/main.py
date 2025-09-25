@@ -784,6 +784,65 @@ Please consider this thread context when responding to provide relevant and cohe
         )
 
 
+@app.event("app_mention")
+async def handle_app_mention_events(body, say, client, logger):
+    """Handle app mentions (when someone @mentions the bot)"""
+    logger.info("App mention received")
+    logger.info(body)
+    event = body.get("event", {})
+
+    if event.get("type") == "app_mention" and "text" in event:
+        user = event.get("user")
+        text = event.get("text")
+        channel = event.get("channel")
+        thread_ts = event.get("thread_ts", event.get("ts"))
+
+        if user:
+            logger.info(f"Received app mention from user {user}: {text}")
+
+            # Check if user is whitelisted
+            if not is_user_whitelisted(user):
+                logger.info(f"User {user} not in whitelist, sending GA message")
+                try:
+                    await say(
+                        text=f"Hi <@{user}>! 👋 Thanks for your interest in the SRE bot. "
+                        "This bot is currently in limited preview and will be available "
+                        "to all users when it reaches general availability (GA). "
+                        "Stay tuned for updates! 🚀",
+                        thread_ts=thread_ts,
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending whitelist message: {e}")
+                return
+
+            try:
+                # Process the app mention
+                original_message_ts = event.get("ts") if not thread_ts else None
+
+                logger.info(
+                    f"Processing app mention - User: {user}, Channel: {channel}, "
+                    f"Thread: {thread_ts}, Original: {original_message_ts}"
+                )
+
+                asyncio.create_task(
+                    process_message_with_api(
+                        client=client,
+                        channel=channel,
+                        thread_ts=thread_ts,
+                        user=user,
+                        message=text,
+                        original_message_ts=original_message_ts,
+                    )
+                )
+
+            except Exception as e:
+                logger.error(f"Error handling app mention: {str(e)}")
+                await say(
+                    text=f"Sorry <@{user}>, something went wrong while processing your request.",
+                    thread_ts=thread_ts,
+                )
+
+
 @app.event("message")
 async def handle_message_events(body, say, client, logger):
     """Handle all message events"""
