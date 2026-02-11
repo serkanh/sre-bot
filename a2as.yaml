@@ -1,0 +1,1083 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: serkanh/sre-bot
+    source: https://github.com/serkanh/sre-bot
+    branch: main
+    commit: "ecefbaaf"
+    scope: [agents/sre_agent/agent.py, agents/sre_agent/aws_auth/auth_service.py, agents/sre_agent/aws_auth/config.py, agents/sre_agent/sub_agents/aws_core/agent.py,
+      agents/sre_agent/sub_agents/aws_core/tools/__init__.py, agents/sre_agent/sub_agents/aws_core/tools/aws_core_tools.py,
+      agents/sre_agent/sub_agents/aws_cost/agent.py, agents/sre_agent/sub_agents/aws_cost/tools/__init__.py, agents/sre_agent/sub_agents/aws_cost/tools/aws_cost_tools.py,
+      agents/sre_agent/utils.py, slack_bot/main.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:33:57Z'
+    url: https://a2as.org/certified/agents/serkanh/sre-bot
+  signatures:
+    digest: sha256:4Xe3nfX4zCs4t0o7HNFO9Q-hA7RH0IdchcfYPT9pyxY
+    key: ed25519:cZt3q_P4EnRV0UfQ53IwGlLsz4KL8zJi2TPanYfTUYE
+    sig: ed25519:Us10uYP2un2DYBauIMzXUh1WGQqirnEVCrxR4eYh3cF1Z15toXliSgwCzwD1_zwoDBTSLZVgoPsvPRvNbsMcDg
+
+agents:
+  agent.0:
+    type: instance
+    models: [get_configured_model]
+    tools: [get_caller_identity, list_s3_buckets, list_ec2_instances, list_rds_instances, get_aws_regions, get_account_summary,
+      test_aws_connectivity]
+    params:
+      name: aws_core_agent
+      description: Specialized agent for general AWS infrastructure operations and cross-account management. Handles EC2,
+        S3, RDS discovery, account summaries, and connectivity testing.
+      instruction:
+        function: load_instruction_from_file
+        type: file_load
+      function: create_aws_core_agent
+      instance: agent
+  agent.1:
+    type: instance
+    models: [get_configured_model]
+    tools: [get_cost_for_period, get_monthly_cost, get_cost_excluding_services, get_cost_trend, get_current_month_cost_excluding_days,
+      get_average_daily_cost, get_weekend_daily_cost, get_weekday_daily_cost, get_most_expensive_account, get_cost_by_service,
+      get_cost_by_tag, get_digital_cost_for_month, get_current_date_info, get_current_month_cost, get_previous_month_cost,
+      get_last_n_months_trend]
+    params:
+      name: aws_cost_agent
+      description: Specialized agent for AWS cost analysis and optimization. Handles cost queries, trends, and budget optimization
+        recommendations.
+      instruction:
+        function: load_instruction_from_file
+        type: file_load
+      function: create_aws_cost_agent
+      instance: agent
+  root_agent:
+    type: instance
+    models: [get_configured_model]
+    params:
+      name: sre_agent
+      instruction: ['You are an expert Site Reliability Engineer (SRE) assistant specializing in operational tasks,', 'infrastructure
+          management, and cost optimization.', 'Your primary responsibilities include:', '- AWS cost analysis and optimization
+          (delegate to aws_cost_agent)', '- AWS infrastructure management and operations (delegate to aws_core_agent)', '-
+          Infrastructure monitoring and troubleshooting', '- Operational best practices and recommendations', '- Performance
+          optimization guidance', 'You have two specialized AWS sub-agents:', '1. **aws_cost_agent**: For AWS cost analysis,
+          spending queries, budget analysis, and cost optimization', '- Use transfer_to_agent(agent_name=''aws_cost_agent'')
+          for cost-related questions', '2. **aws_core_agent**: For general AWS infrastructure operations, account management,
+          and resource discovery', '- Use transfer_to_agent(agent_name=''aws_core_agent'') for infrastructure queries, account
+          summaries, resource listings (EC2, S3, RDS), connectivity testing, and cross-account operations', 'For AWS cost
+          questions, always delegate to aws_cost_agent.', 'For AWS infrastructure operations, resource discovery, or account
+          management, always delegate to aws_core_agent.', 'Provide practical, actionable advice based on industry best practices
+          for all SRE and DevOps tasks.']
+      description: A comprehensive SRE assistant for operational tasks, infrastructure management, and AWS cost optimization
+        with specialized sub-agents.
+      function: _create_root_agent
+
+models:
+  get_configured_model:
+    type: function
+    agents: [agent.0, agent.1, root_agent]
+    params:
+      wrapper: get_configured_model
+
+tools:
+  get_account_summary:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        Get AWS account summary with basic information across services.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+
+        Returns:
+            Dict containing account summary information
+
+        Raises:
+            AWSAuthError: If authentication fails
+  get_average_daily_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the average daily AWS cost for a period, with option to include or exclude weekends.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            include_weekends (bool): Whether to include weekend days in the calculation
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Average daily cost data
+  get_aws_regions:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        Get list of available AWS regions for a service.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+            service: AWS service to get regions for (default: ec2)
+
+        Returns:
+            Dict containing list of regions
+
+        Raises:
+            AWSAuthError: If authentication fails
+  get_caller_identity:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        Get AWS caller identity information using STS.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+
+        Returns:
+            Dict containing caller identity information including account, user ID, and ARN
+
+        Raises:
+            AWSAuthError: If authentication fails
+  get_cost_by_service:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS costs grouped by service.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            granularity (str): Time granularity (DAILY, MONTHLY)
+
+        Returns:
+            Dict: Cost data grouped by service
+  get_cost_by_tag:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS costs grouped by a specific tag.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            tag_key (str): The tag key to group by (without the 'tag:' prefix)
+            granularity (str): Time granularity (DAILY, MONTHLY)
+
+        Returns:
+            Dict: Cost data grouped by the specified tag
+  get_cost_excluding_services:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost data excluding specific services.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            excluded_services (List[str]): List of service names to exclude
+            granularity (str): Time granularity (DAILY, MONTHLY, HOURLY)
+
+        Returns:
+            Dict: Cost data excluding the specified services
+  get_cost_for_period:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost data for a specific time period with optional filtering and grouping.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            granularity (str): Time granularity (DAILY, MONTHLY, HOURLY)
+            metrics (List[str]): Cost metrics to retrieve
+            group_by (Optional[List[Dict[str, str]]]): Grouping dimensions
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Cost data for the specified period
+  get_cost_trend:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost trend for the last X months.
+
+        Args:
+            months (int): Number of months to analyze
+            granularity (str): Time granularity (DAILY, MONTHLY)
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Cost trend data for the specified period
+  get_current_date_info:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get current date information useful for cost analysis.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing:
+                - current_year: Current year as int
+                - current_month: Current month as int (1-12)
+                - current_month_name: Current month name (e.g., "January")
+                - first_day_current_month: First day of current month (YYYY-MM-DD)
+                - today_formatted: Today's date formatted (YYYY-MM-DD)
+                - yesterday_formatted: Yesterday's date formatted (YYYY-MM-DD)
+                - first_day_previous_month: First day of previous month (YYYY-MM-DD)
+                - last_day_previous_month: Last day of previous month (YYYY-MM-DD)
+  get_current_month_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost data for the current month.
+
+        This is a convenience function that automatically determines the current month
+        and retrieves cost data without requiring manual date specification.
+
+        Args:
+            filter_expression (Optional[Dict[str, Any]]): Optional filter expression for costs
+
+        Returns:
+            Dict: Cost data for the current month
+  get_current_month_cost_excluding_days:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the current month's cost excluding the last X days.
+
+        Args:
+            days_to_exclude (int): Number of days to exclude from the end
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Cost data for the current month excluding the specified days
+  get_digital_cost_for_month:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the cost of Digital for a specific month, with option to exclude services.
+
+        Args:
+            year (int): Year (e.g., 2025)
+            month (int): Month (1-12)
+            exclude_services (Optional[List[str]]): List of services to exclude from the cost
+
+        Returns:
+            Dict: Cost data for Digital for the specified month
+  get_last_n_months_trend:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost trend for the last N months automatically using the current date.
+
+        This is a convenience function that automatically determines the date range
+        for the last N months and retrieves trend data.
+
+        Args:
+            months (int): Number of months to analyze (default: 3)
+            granularity (str): Time granularity (DAILY, MONTHLY)
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Cost trend data for the specified period
+  get_monthly_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost data for a specific month.
+
+        Args:
+            year (int): Year (e.g., 2025)
+            month (int): Month (1-12)
+            group_by (Optional[List[Dict[str, str]]]): Grouping dimensions
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Cost data for the specified month
+  get_most_expensive_account:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the most expensive AWS account within the master payer account.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+
+        Returns:
+            Dict: Information about the most expensive account
+  get_previous_month_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get AWS cost data for the previous month.
+
+        This is a convenience function that automatically determines the previous month
+        and retrieves cost data without requiring manual date specification.
+
+        Args:
+            filter_expression (Optional[Dict[str, Any]]): Optional filter expression for costs
+
+        Returns:
+            Dict: Cost data for the previous month
+  get_weekday_daily_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the average daily AWS cost for weekdays only.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Average weekday daily cost data
+  get_weekend_daily_cost:
+    type: function
+    agents: [agent.1]
+    params:
+      description: |-
+        Get the average daily AWS cost for weekends only.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            filter_expression (Optional[Dict[str, Any]]): Filter expression for costs
+
+        Returns:
+            Dict: Average weekend daily cost data
+  list_ec2_instances:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        List EC2 instances in the account.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+            region: Optional AWS region. If None, uses default region.
+            instance_states: Optional list of instance states to filter by (e.g., ['running', 'stopped'])
+
+        Returns:
+            Dict containing list of EC2 instances
+
+        Raises:
+            AWSAuthError: If authentication fails
+  list_rds_instances:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        List RDS database instances in the account.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+            region: Optional AWS region. If None, uses default region.
+
+        Returns:
+            Dict containing list of RDS instances
+
+        Raises:
+            AWSAuthError: If authentication fails
+  list_s3_buckets:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        List S3 buckets in the account.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+
+        Returns:
+            Dict containing list of S3 buckets
+
+        Raises:
+            AWSAuthError: If authentication fails
+  test_aws_connectivity:
+    type: function
+    agents: [agent.0]
+    params:
+      description: |-
+        Test AWS connectivity and permissions across multiple services.
+
+        Args:
+            role_name: Optional role name to assume. If None, uses default credentials.
+
+        Returns:
+            Dict containing connectivity test results
+
+        Raises:
+            AWSAuthError: If authentication fails
+
+imports:
+  _create_root_agent: agent._create_root_agent
+  Agent: google.adk.agents.Agent
+  aiohttp: aiohttp
+  Any: typing.Any
+  AssumeRoleError: exceptions.AssumeRoleError
+  AsyncApp: slack_bolt.async_app.AsyncApp
+  AsyncExitStack: contextlib.AsyncExitStack
+  asyncio: asyncio
+  AsyncSlackRequestHandler: slack_bolt.adapter.fastapi.async_handler.AsyncSlackRequestHandler
+  AsyncWebClient: slack_sdk.web.async_client.AsyncWebClient
+  AuthenticationError: exceptions.AuthenticationError
+  AWSAuthConfig: config.AWSAuthConfig
+  AWSAuthError: exceptions.AWSAuthError
+  AWSAuthService: auth_service.AWSAuthService
+  AWSCredentials: config.AWSCredentials
+  BaseModel: pydantic.BaseModel
+  boto3: boto3
+  calendar: calendar
+  clear_aws_auth: aws_cost_tools.clear_aws_auth
+  ClientCreationError: exceptions.ClientCreationError
+  ClientError: botocore.exceptions.ClientError
+  ConfigurationError: exceptions.ConfigurationError
+  configure_aws_auth: aws_cost_tools.configure_aws_auth
+  create_auth_error_from_boto_error: exceptions.create_auth_error_from_boto_error
+  create_aws_core_agent: sub_agents.aws_core.agent.create_aws_core_agent
+  create_aws_cost_agent: sub_agents.aws_cost.agent.create_aws_cost_agent
+  CredentialExpiredError: exceptions.CredentialExpiredError
+  date: datetime.date
+  datetime: datetime.datetime
+  Dict: typing.Dict
+  FastAPI: fastapi.FastAPI
+  Field: pydantic.Field
+  field_validator: pydantic.field_validator
+  get_account_summary: aws_core_tools.get_account_summary
+  get_auth_service: aws_auth.get_auth_service
+  get_authenticated_client: auth_service.get_authenticated_client
+  get_average_daily_cost: tools.aws_cost_tools.get_average_daily_cost
+  get_aws_core_agent: agent.get_aws_core_agent
+  get_aws_cost_agent: agent.get_aws_cost_agent
+  get_aws_regions: aws_core_tools.get_aws_regions
+  get_caller_identity: aws_core_tools.get_caller_identity
+  get_configured_model: utils.get_configured_model
+  get_cost_by_service: tools.aws_cost_tools.get_cost_by_service
+  get_cost_by_tag: tools.aws_cost_tools.get_cost_by_tag
+  get_cost_excluding_services: tools.aws_cost_tools.get_cost_excluding_services
+  get_cost_for_period: tools.aws_cost_tools.get_cost_for_period
+  get_cost_trend: tools.aws_cost_tools.get_cost_trend
+  get_current_date_info: aws_cost_tools.get_current_date_info
+  get_current_month_cost: tools.aws_cost_tools.get_current_month_cost
+  get_current_month_cost_excluding_days: tools.aws_cost_tools.get_current_month_cost_excluding_days
+  get_digital_cost_for_month: tools.aws_cost_tools.get_digital_cost_for_month
+  get_last_n_months_trend: tools.aws_cost_tools.get_last_n_months_trend
+  get_logger: utils.get_logger
+  get_monthly_cost: tools.aws_cost_tools.get_monthly_cost
+  get_most_expensive_account: tools.aws_cost_tools.get_most_expensive_account
+  get_previous_month_cost: tools.aws_cost_tools.get_previous_month_cost
+  get_weekday_daily_cost: tools.aws_cost_tools.get_weekday_daily_cost
+  get_weekend_daily_cost: tools.aws_cost_tools.get_weekend_daily_cost
+  healthcheck: modules.health.healthcheck
+  json: json
+  List: typing.List
+  list_ec2_instances: aws_core_tools.list_ec2_instances
+  list_rds_instances: aws_core_tools.list_rds_instances
+  list_s3_buckets: aws_core_tools.list_s3_buckets
+  LiteLlm: google.adk.models.lite_llm.LiteLlm
+  load_instruction_from_file: utils.load_instruction_from_file
+  logging: logging
+  NoCredentialsError: botocore.exceptions.NoCredentialsError
+  Optional: typing.Optional
+  os: os
+  ProfileNotFound: botocore.exceptions.ProfileNotFound
+  re: re
+  Request: fastapi.Request
+  RoleConfig: config.RoleConfig
+  RoleNotFoundError: exceptions.RoleNotFoundError
+  sys: sys
+  test_aws_connectivity: aws_core_tools.test_aws_connectivity
+  ThreadPoolExecutor: concurrent.futures.ThreadPoolExecutor
+  time: time
+  timedelta: datetime.timedelta
+  timezone: datetime.timezone
+  Tuple: typing.Tuple
+
+functions:
+  __init__:
+    type: sync
+    module: agents.sre_agent.aws_auth.exceptions
+    args: [self, service, message, original_error]
+  __str__:
+    type: sync
+    module: agents.sre_agent.aws_auth.exceptions
+    args: [self]
+    params:
+      returns: str
+  _assume_role:
+    type: async
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, role_config]
+    params:
+      returns: AWSCredentials
+  _cleanup_expired_sessions:
+    type: sync
+    module: slack_bot.main
+    args: [self]
+  _create_root_agent:
+    type: sync
+    module: agents.sre_agent.agent
+  _credentials_valid:
+    type: sync
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, role_name]
+    params:
+      returns: bool
+  _get_cost_explorer_client:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+  _get_cost_explorer_client_async:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+  _get_sts_client:
+    type: sync
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self]
+    params:
+      returns: Any
+  _refresh_credentials:
+    type: async
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, role_name]
+    params:
+      returns: None
+  _run_in_executor:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [func]
+  add_role:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [self, name, role_config]
+    params:
+      returns: None
+  clear_aws_auth:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+  clear_cache:
+    type: sync
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, role_name]
+    params:
+      returns: None
+  configure_auth:
+    type: sync
+    module: agents.sre_agent.aws_auth
+    args: [default_region, default_profile, enable_caching, cache_ttl_seconds]
+    params:
+      returns: AWSAuthConfig
+  configure_aws_auth:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [auth_service, role_name]
+  create_api_session:
+    type: async
+    module: slack_bot.main
+    args: [session, parent_thread_data]
+    params:
+      returns: bool
+  create_auth_error_from_boto_error:
+    type: sync
+    module: agents.sre_agent.aws_auth.exceptions
+    args: [boto_error, context]
+    params:
+      returns: AWSAuthError
+  create_aws_core_agent:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_core.agent
+  create_aws_cost_agent:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_cost.agent
+  create_client:
+    type: async
+    module: agents.sre_agent.aws_auth
+    args: [service, role_name, region]
+  create_role_config:
+    type: sync
+    module: agents.sre_agent.aws_auth
+    args: [role_arn, account_id]
+    params:
+      returns: RoleConfig
+  custom_error_handler:
+    type: async
+    module: slack_bot.main
+    args: [error, body, logger]
+  fetch_parent_message_content:
+    type: async
+    module: slack_bot.main
+    args: [client, channel, thread_ts]
+    params:
+      returns: Dict
+  from_env:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [cls]
+    params:
+      returns: AWSAuthConfig
+  get_account_summary:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name]
+    params:
+      returns: Dict
+  get_auth_service:
+    type: sync
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [config]
+    params:
+      returns: AWSAuthService
+  get_authenticated_client:
+    type: async
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [service, role_name, region, config]
+    params:
+      returns: Any
+  get_average_daily_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, include_weekends, filter_expression]
+    params:
+      returns: Dict
+  get_aws_core_agent:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.agent
+  get_aws_cost_agent:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.agent
+  get_aws_regions:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name, service]
+    params:
+      returns: Dict
+  get_cache_info:
+    type: sync
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self]
+    params:
+      returns: Dict
+  get_caller_identity:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name]
+    params:
+      returns: Dict
+  get_client:
+    type: async
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, service, role_name, region]
+    params:
+      returns: Any
+  get_configured_model:
+    type: sync
+    module: agents.sre_agent.utils
+  get_cost_by_service:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, granularity]
+    params:
+      returns: Dict
+  get_cost_by_tag:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, tag_key, granularity]
+    params:
+      returns: Dict
+  get_cost_excluding_services:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, excluded_services, granularity]
+    params:
+      returns: Dict
+  get_cost_for_period:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, granularity, metrics, group_by, filter_expression]
+    params:
+      returns: Dict
+  get_cost_trend:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [months, granularity, filter_expression]
+    params:
+      returns: Dict
+  get_current_date_info:
+    type: sync
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    params:
+      returns: Dict
+  get_current_month_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [filter_expression]
+    params:
+      returns: Dict
+  get_current_month_cost_excluding_days:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [days_to_exclude, filter_expression]
+    params:
+      returns: Dict
+  get_digital_cost_for_month:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [year, month, exclude_services]
+    params:
+      returns: Dict
+  get_last_n_months_trend:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [months, granularity, filter_expression]
+    params:
+      returns: Dict
+  get_logger:
+    type: sync
+    module: agents.sre_agent.utils
+    args: [name]
+    params:
+      returns: logging.Logger
+  get_monthly_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [year, month, group_by, filter_expression]
+    params:
+      returns: Dict
+  get_most_expensive_account:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date]
+    params:
+      returns: Dict
+  get_previous_month_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [filter_expression]
+    params:
+      returns: Dict
+  get_role:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [self, role_name]
+    params:
+      returns: Optional[RoleConfig]
+  get_session:
+    type: sync
+    module: slack_bot.main
+    args: [self, channel, user, thread_ts]
+    params:
+      returns: ConversationSession
+  get_weekday_daily_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, filter_expression]
+    params:
+      returns: Dict
+  get_weekend_daily_cost:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_cost.tools.aws_cost_tools
+    args: [start_date, end_date, filter_expression]
+    params:
+      returns: Dict
+  handle_app_mention_events:
+    type: async
+    module: slack_bot.main
+    args: [body, say, client, logger]
+  handle_message_events:
+    type: async
+    module: slack_bot.main
+    args: [body, say, client, logger]
+  health:
+    type: async
+    module: slack_bot.main
+    params:
+      returns: dict
+  initialize_bot_user_id:
+    type: async
+    module: slack_bot.main
+  is_expired:
+    type: sync
+    module: slack_bot.main
+    args: [self, timeout_minutes]
+    params:
+      returns: bool
+  is_user_whitelisted:
+    type: sync
+    module: slack_bot.main
+    args: [user_id]
+    params:
+      returns: bool
+  list_ec2_instances:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name, region, instance_states]
+    params:
+      returns: Dict
+  list_rds_instances:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name, region]
+    params:
+      returns: Dict
+  list_roles:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [self]
+    params:
+      returns: list[str]
+  list_s3_buckets:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name]
+    params:
+      returns: Dict
+  load_instruction_from_file:
+    type: sync
+    module: agents.sre_agent.utils
+    args: [file_path]
+    params:
+      returns: str
+  process_message_with_api:
+    type: async
+    module: slack_bot.main
+    args: [client, channel, thread_ts, user, message, original_message_ts]
+  send_acknowledgment_message:
+    type: async
+    module: slack_bot.main
+    args: [client, channel, user, thread_ts]
+    params:
+      returns: bool
+  send_message_to_api:
+    type: async
+    module: slack_bot.main
+    args: [session, message]
+    params:
+      returns: str
+  setup_logger:
+    type: sync
+    module: agents.sre_agent.utils
+    args: [name, level, format_string, include_timestamp, include_module]
+    params:
+      returns: logging.Logger
+  slack_events:
+    type: async
+    module: slack_bot.main
+    args: [req]
+    params:
+      returns: Any
+  startup_event:
+    type: async
+    module: slack_bot.main
+  test_auth:
+    type: async
+    module: agents.sre_agent.aws_auth
+    args: [role_name]
+  test_aws_connectivity:
+    type: async
+    module: agents.sre_agent.sub_agents.aws_core.tools.aws_core_tools
+    args: [role_name]
+    params:
+      returns: Dict
+  test_credentials:
+    type: async
+    module: agents.sre_agent.aws_auth.auth_service
+    args: [self, role_name]
+    params:
+      returns: Dict
+  update_activity:
+    type: sync
+    module: slack_bot.main
+    args: [self]
+  update_session_thread:
+    type: sync
+    module: slack_bot.main
+    args: [self, session, new_thread_ts]
+  validate_account_id:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [cls, v]
+  validate_role_arn:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [cls, v]
+  validate_session_name:
+    type: sync
+    module: agents.sre_agent.aws_auth.config
+    args: [cls, v]
+
+variables:
+  ANTHROPIC_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  ANTHROPIC_MODEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  API_TIMEOUT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [slack_bot.main]
+  AWS_AUTH_CACHE_TTL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_ACCOUNT_ID:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_DURATION:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_EXTERNAL_ID:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_PROFILE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_REGION:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_ROLE_ARN:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_ROLE_NAME:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_DEFAULT_SESSION_NAME:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_ENABLE_CACHING:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_ENABLE_ROLE_CHAINING:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_AUTH_ROLES:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_PROFILE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  AWS_REGION:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.aws_auth.config]
+  BEDROCK_INFERENCE_PROFILE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  CI:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  GOOGLE_AI_MODEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  GOOGLE_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  LOG_LEVEL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  PYTEST_CURRENT_TEST:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [agents.sre_agent.utils]
+  SESSION_TIMEOUT_MINUTES:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [slack_bot.main]
+  SLACK_BOT_TOKEN:
+    type: env
+    params:
+      caller: [os.getenv, AsyncWebClient]
+      path: [slack_bot.main]
+  SRE_BOT_API_URL:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [slack_bot.main]
+  WHITELIST_ENABLED:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [slack_bot.main]
+  WHITELIST_USERS:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [slack_bot.main]
+
+files:
+  aws_core_agent_system_prompt.md:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [current_dir, prompts, aws_core_agent_system_prompt.md]
+  aws_cost_agent_system_prompt.md:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [current_dir, prompts, aws_cost_agent_system_prompt.md]
+  file_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists, open]
